@@ -9,21 +9,26 @@ const uploadRoutes = require("./modules/upload/upload.routes");
 
 const app = express();
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL,        // your vercel url
+const allowed = [
+  "https://rewear-clothing-swap-platform.vercel.app",
   "http://localhost:5173",
 ];
 
+const isVercelPreview = (origin) =>
+  origin?.startsWith("https://rewear-clothing-swap-platform-") &&
+  origin.endsWith(".vercel.app");
+
 app.use(
   cors({
-    origin: function (origin, cb) {
-      if (!origin) return cb(null, true); // allow Postman/mobile apps
-      if (allowedOrigins.includes(origin)) return cb(null, true);
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      if (allowed.includes(origin) || isVercelPreview(origin)) return cb(null, true);
       return cb(new Error("CORS blocked: " + origin));
     },
     credentials: true,
   })
 );
+app.options("*", cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
