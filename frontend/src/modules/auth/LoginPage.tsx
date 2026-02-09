@@ -4,7 +4,7 @@ import { Input } from "../../components/ui/Input";
 import { loginUser } from "../../api/auth.api";
 
 interface LoginPageProps {
-  onLogin: (role: "user" | "admin", userId: string) => void;
+  onLogin: (role: "user" | "admin", userId: string, isEmailVerified: boolean) => void;
   onNavigateRegister: () => void;
 }
 
@@ -27,8 +27,8 @@ export function LoginPage({ onLogin, onNavigateRegister }: LoginPageProps) {
       // 💾 Save JWT
       localStorage.setItem("token", res.token);
 
-      // ✅ Pass real role + userId to App.tsx
-      onLogin(res.user.role, res.user.id);
+      // ✅ Pass role + id + verification status to App.tsx
+      onLogin(res.user.role, res.user.id, res.user.isEmailVerified);
     } catch (err: any) {
       setError(err?.response?.data?.message || "Login failed");
     } finally {
@@ -40,17 +40,9 @@ export function LoginPage({ onLogin, onNavigateRegister }: LoginPageProps) {
     <div className="min-h-screen flex items-center justify-center bg-brand-50 px-4">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg border border-brand-100">
         <div className="text-center">
-          <img
-            src="/logo.png"
-            alt="ReWear"
-            className="mx-auto h-16 w-auto"
-          />
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Welcome back
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Sign in to continue swapping
-          </p>
+          <img src="/logo.png" alt="ReWear" className="mx-auto h-16 w-auto" />
+          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Welcome back</h2>
+          <p className="mt-2 text-sm text-gray-600">Sign in to continue swapping</p>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -82,12 +74,7 @@ export function LoginPage({ onLogin, onNavigateRegister }: LoginPageProps) {
             />
           </div>
 
-          <Button
-            type="submit"
-            className="w-full"
-            size="lg"
-            isLoading={isLoading}
-          >
+          <Button type="submit" className="w-full" size="lg" isLoading={isLoading}>
             Sign in
           </Button>
 
