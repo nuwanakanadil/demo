@@ -1,15 +1,21 @@
 const nodemailer = require("nodemailer");
 const dns = require("dns");
 
-dns.setDefaultResultOrder("ipv4first");
-
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
-  secure: false, // TLS via STARTTLS
+  secure: false,
   auth: {
     user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS, // Gmail App Password
+    pass: process.env.MAIL_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
+
+  // ✅ FORCE IPv4 ONLY (prevents ipv6 2404:... errors)
+  lookup: (hostname, options, cb) => {
+    dns.lookup(hostname, { family: 4, all: false }, cb);
   },
 });
 
