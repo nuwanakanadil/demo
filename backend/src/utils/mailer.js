@@ -36,13 +36,21 @@ function wrapHtml({ title, subtitle, bodyHtml, ctaText, ctaUrl }) {
 }
 
 async function sendEmail({ to, subject, text, html }) {
-  return resend.emails.send({
-    from: process.env.MAIL_FROM,
-    to,
-    subject,
-    text,
-    html,
-  });
+  try {
+    const resp = await resend.emails.send({
+      from: process.env.MAIL_FROM,
+      to,
+      subject,
+      text,
+      html,
+    });
+
+    console.log("✅ Resend response:", resp);
+    return resp;
+  } catch (err) {
+    console.error("❌ Resend send failed:", err);
+    throw err;
+  }
 }
 
 async function sendVerifyEmail(to, name, verifyUrl) {
