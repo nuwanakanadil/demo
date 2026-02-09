@@ -1,64 +1,85 @@
-ReWear ♻️
+# ♻️ ReWear – Apparel Swap Platform
 
-A full-stack web application for swapping unused clothing items to promote sustainable fashion.
+A full-stack apparel swapping platform built with **React**, **Node.js**, and **MongoDB** to promote **sustainable fashion** by enabling users to list, browse, and swap unused clothing items.
 
-Tech Stack
+The application provides secure authentication, image uploads, and a structured swap system with a clean and user-friendly interface.
 
-Frontend: React, TypeScript, Vite, Tailwind CSS
+---
 
-Backend: Node.js, Express, MongoDB
+## 🚀 Tech Stack
 
-Auth: JWT, Email Verification
+### Backend
+- Node.js
+- Express
+- MongoDB (Mongoose)
+- JWT Authentication
+- Nodemailer
+- Cloudinary
+- Multer
 
-Uploads: Cloudinary
+### Frontend
+- React + TypeScript
+- Vite
+- Tailwind CSS
+- Axios
 
-Emails: Nodemailer
+---
 
-Project Structure
-rewear/
-├── backend/
-├── frontend/
-└── README.md
+## ✨ Features
 
-Prerequisites
+### Authentication & Security
+- User registration and login
+- JWT-based authentication
+- **Email verification required before login**
+- Backend-enforced access control
+- Verified-user-only actions
 
-Node.js (v18+)
+### Apparel Management
+- Create apparel items with details (category, size, condition)
+- Upload **multiple images per item**
+- Edit and delete owned items
+- Browse all available items
+- View personal item listings
 
-MongoDB (local or Atlas)
+### Swap System
+- Send swap requests for available items
+- View incoming and outgoing swap requests
+- Accept, reject, or complete swaps
+- Ownership-based authorization
 
-Cloudinary account
+### Image Handling
+- Image uploads handled via Multer
+- Images stored securely in Cloudinary
+- Stored as `{ url, public_id }`
+- Supports future image deletion and updates
 
-Gmail App Password
+---
 
-Environment Variables
+## 🧠 Design Decisions
 
-Create backend/.env
-Copy all from the .env.example file and paste it into the .env file
+- JWT authentication combined with backend route protection for security
+- Email verification is mandatory to prevent misuse of the platform
+- Cloudinary is used to reduce server storage overhead
+- Business logic separated into controllers, services, and middlewares
+- Email sending handled asynchronously (non-blocking)
 
-Run Locally
-Backend
-cd backend
-npm install
-npm run dev
+---
 
-Frontend
-cd frontend
-npm install
-npm run dev
+## 📋 Requirements
 
+### System Requirements
+- Node.js **18 or higher**
+- NPM (comes with Node.js)
+- MongoDB (local or MongoDB Atlas)
 
-Frontend: http://localhost:5173
+### External Services
+- Cloudinary account (image uploads)
+- Gmail account with **App Password** enabled (email verification)
 
-Backend: http://localhost:5000
+---
 
-Notes
+## ⚙️ Setup Instructions
 
-Email verification is required before login
-
-Only verified users can create items and swaps
-
-Images are uploaded to Cloudinary
-
-License
-
-Educational project
+```bash
+git clone <repository-url>
+cd rewear
