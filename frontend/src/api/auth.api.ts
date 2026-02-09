@@ -29,3 +29,19 @@ export async function registerUser(
   });
   return res.data;
 }
+
+export interface MeResponse {
+  success: boolean;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: "user" | "admin";
+    isEmailVerified: boolean;
+  };
+}
+
+export async function getMe() {
+  const res = await api.get("/auth/me");
+  return res.data as MeResponse;
+}
