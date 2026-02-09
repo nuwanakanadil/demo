@@ -1,0 +1,19 @@
+name: CD
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    name: Deploy (Deploy Hooks)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Backend Deploy Hook
+        if: ${{ secrets.BACKEND_DEPLOY_HOOK != '' }}
+        run: curl -X POST "${{ secrets.BACKEND_DEPLOY_HOOK }}"
+
+      - name: Trigger Frontend Deploy Hook
+        if: ${{ secrets.FRONTEND_DEPLOY_HOOK != '' }}
+        run: curl -X POST "${{ secrets.FRONTEND_DEPLOY_HOOK }}"
