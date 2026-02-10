@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { SwapRequest } from "../../types";
 import { SwapRequestCard } from "../../components/SwapRequestCard";
 import { Inbox } from "lucide-react";
-import { getIncomingSwaps, acceptSwap, rejectSwap } from "../../api/swap.api";
+import { getIncomingSwaps, acceptSwap, rejectSwap, completeSwap } from "../../api/swap.api";
 
 export function IncomingRequestsPage() {
   const [requests, setRequests] = useState<SwapRequest[]>([]);
@@ -29,9 +29,7 @@ export function IncomingRequestsPage() {
   const handleAccept = async (id: string) => {
     try {
       await acceptSwap(id);
-      setRequests((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status: "accepted" } : r))
-      );
+      setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "accepted" } : r)));
     } catch (e: any) {
       alert(e?.response?.data?.message || "Failed to accept request");
     }
@@ -40,11 +38,18 @@ export function IncomingRequestsPage() {
   const handleReject = async (id: string) => {
     try {
       await rejectSwap(id);
-      setRequests((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status: "rejected" } : r))
-      );
+      setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "rejected" } : r)));
     } catch (e: any) {
       alert(e?.response?.data?.message || "Failed to reject request");
+    }
+  };
+
+  const handleComplete = async (id: string) => {
+    try {
+      await completeSwap(id);
+      setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "completed" } : r)));
+    } catch (e: any) {
+      alert(e?.response?.data?.message || "Failed to complete swap");
     }
   };
 
@@ -85,6 +90,7 @@ export function IncomingRequestsPage() {
               type="incoming"
               onAccept={handleAccept}
               onReject={handleReject}
+              onComplete={handleComplete}
             />
           ))}
         </div>

@@ -35,7 +35,10 @@ export interface SwapRequest {
   requestedItemName: string;
   offeredItemId: string;
   offeredItemName: string;
-  status: "pending" | "accepted" | "rejected";
+
+  // ✅ updated
+  status: "pending" | "accepted" | "rejected" | "completed" | "cancelled";
+
   message?: string;
   createdAt: string;
 }
@@ -53,12 +56,7 @@ export type ApparelCategoryApi =
   | "ACCESSORY"
   | "OTHER";
 
-export type ApparelConditionApi =
-  | "NEW"
-  | "LIKE_NEW"
-  | "GOOD"
-  | "FAIR"
-  | "WORN";
+export type ApparelConditionApi = "NEW" | "LIKE_NEW" | "GOOD" | "FAIR" | "WORN";
 
 export interface ApparelApiImage {
   url: string;
@@ -110,10 +108,7 @@ const conditionFromApi: Record<ApparelConditionApi, Apparel["condition"]> = {
  * Convert backend ApparelApi → UI Apparel
  */
 export function mapApparelApiToUi(item: ApparelApi): Apparel {
-  const ownerObj =
-    typeof item.owner === "string"
-      ? { _id: item.owner }
-      : item.owner;
+  const ownerObj = typeof item.owner === "string" ? { _id: item.owner } : item.owner;
 
   return {
     id: item._id,
@@ -122,7 +117,7 @@ export function mapApparelApiToUi(item: ApparelApi): Apparel {
     condition: conditionFromApi[item.condition] || "Good",
     category: categoryFromApi[item.category] || "Tops",
 
-    // ✅ FIXED: extract image url from object
+    // ✅ Cloudinary image object → url
     imageUrl: item.images?.[0]?.url || "",
 
     ownerId: ownerObj._id,

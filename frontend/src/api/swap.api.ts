@@ -10,25 +10,30 @@ export interface SwapApi {
   requester: { _id: string; name: string; email?: string };
   owner: { _id: string; name: string; email?: string };
 
-  requestedItem: any; // populated Apparel
-  offeredItem: any;   // populated Apparel
+  requestedItem: any;
+  offeredItem: any;
 }
 
-// Map backend status -> UI status
 function mapStatus(status: SwapApi["status"]): SwapRequest["status"] {
-  if (status === "ACCEPTED") return "accepted";
-  if (status === "REJECTED") return "rejected";
-  return "pending";
+  switch (status) {
+    case "ACCEPTED":
+      return "accepted";
+    case "REJECTED":
+      return "rejected";
+    case "COMPLETED":
+      return "completed";
+    case "CANCELLED":
+      return "cancelled";
+    default:
+      return "pending";
+  }
 }
 
-// Map backend Swap -> UI SwapRequest
 export function mapSwapApiToUi(s: SwapApi): SwapRequest {
   return {
     id: s._id,
-
     requesterId: s.requester?._id || "",
     requesterName: s.requester?.name || "Unknown",
-
     ownerId: s.owner?._id || "",
 
     requestedItemId: s.requestedItem?._id || "",
@@ -53,17 +58,16 @@ export async function createSwapRequest(payload: {
   return res.data;
 }
 
-// ✅ Return UI-ready array
 export async function getIncomingSwaps(): Promise<SwapRequest[]> {
   const res = await api.get("/swaps/incoming");
   const list: SwapApi[] = res.data?.data ?? [];
   return list.map(mapSwapApiToUi);
 }
 
-// ✅ Return UI-ready array
-export async function getOutgoingSwaps(): Promise<{ success: boolean; data: SwapRequest[] }> {
+export async function getOutgoingSwaps(): Promise<SwapRequest[]> {
   const res = await api.get("/swaps/outgoing");
-  return res.data;
+  const list: SwapApi[] = res.data?.data ?? [];
+  return list.map(mapSwapApiToUi);
 }
 
 export async function acceptSwap(id: string) {
