@@ -7,7 +7,9 @@
   "engines": {
     "node": "20.x"
   },
-  
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "4.57.1"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
