@@ -10,21 +10,19 @@ export function MyRequestsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    try {
-      setError(null);
-      setLoading(true);
+  try {
+    setError(null);
+    setLoading(true);
 
-      const res = await getOutgoingSwaps(); // backend response: { success, data: [...] }
-      const list: SwapRequest[] = res.data || [];
+    const list = await getOutgoingSwaps(); // ✅ already SwapRequest[]
+    setRequests(list);
 
-      setRequests(list);
-    } catch (err: any) {
-      console.error("Failed to load outgoing swaps", err);
-      setError(err?.response?.data?.message || "Failed to load your requests");
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (e: any) {
+    setError(e?.response?.data?.message || "Failed to load outgoing requests");
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     load();
