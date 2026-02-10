@@ -1,7 +1,20 @@
-const { Resend } = require("resend");
+const nodemailer = require("nodemailer");
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+/**
+ * ✅ SMTP transporter (Brevo)
+ * Render reads these from Environment Variables (process.env)
+ */
+const transporter = nodemailer.createTransport({
+  host: process.env.MAIL_HOST, // smtp-relay.brevo.com
+  port: Number(process.env.MAIL_PORT || 587),
+  secure: false, // TLS over 587
+  auth: {
+    user: process.env.MAIL_USER, // e.g. a1feb0001@smtp-brevo.com
+    pass: process.env.MAIL_PASS, // xkeysib-...
+  },
+});
 
+/** Shared HTML wrapper (keep your design) */
 function wrapHtml({ title, subtitle, bodyHtml, ctaText, ctaUrl }) {
   return `
   <div style="font-family:Arial,Helvetica,sans-serif;background:#f4f6f8;padding:40px;">
@@ -35,24 +48,33 @@ function wrapHtml({ title, subtitle, bodyHtml, ctaText, ctaUrl }) {
   `;
 }
 
+/** Low-level send function */
 async function sendEmail({ to, subject, text, html }) {
   try {
-    const resp = await resend.emails.send({
-      from: process.env.MAIL_FROM,
+    const resp = await transporter.sendMail({
+      from: process.env.MAIL_FROM, // e.g. "ReWear <team.rewear.1@gmail.com>"
       to,
       subject,
       text,
       html,
     });
 
-    console.log("✅ Resend response:", resp);
+    console.log("✅ Email sent:", {
+      to,
+      subject,
+      messageId: resp.messageId,
+      accepted: resp.accepted,
+      rejected: resp.rejected,
+    });
+
     return resp;
   } catch (err) {
-    console.error("❌ Resend send failed:", err);
+    console.error("❌ Email send failed:", err?.message || err);
     throw err;
   }
 }
 
+/** Verify email */
 async function sendVerifyEmail(to, name, verifyUrl) {
   const subject = "Verify your ReWear email address";
   const text = `Hi ${name},\n\nVerify your email:\n${verifyUrl}\n\nReWear Team`;
@@ -70,6 +92,7 @@ async function sendVerifyEmail(to, name, verifyUrl) {
   return sendEmail({ to, subject, text, html });
 }
 
+/** Welcome email */
 async function sendWelcomeEmail(to, name, appUrl) {
   const subject = "Welcome to ReWear 🎉 Your account is ready";
   const text = `Hi ${name},\n\nWelcome to ReWear! Start swapping:\n${appUrl}\n\nReWear Team`;
