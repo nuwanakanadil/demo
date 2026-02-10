@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Routes,
   Route,
@@ -25,7 +25,13 @@ import { MyRequestsPage } from "../modules/swap/MyRequestsPage";
 import { HistoryPage } from "../modules/swap/HistoryPage";
 import { AdminDashboard } from "../modules/admin/AdminDashboard";
 
+import {ProductDetailsPage} from "../modules/apparel/ProductDetailsPage";
+
+
+import { UserProfilePage } from "../modules/User/UserProfile"; // ✅ add this
+import { getMe } from "../api/auth.api"; // ✅ add this
 import { Apparel } from "../types";
+import { ChatPage } from "../modules/Chat/ChatPage";
 
 /* --------------------------------------------------
    Helpers
@@ -124,6 +130,19 @@ function RequestSwapRoute({
 }
 
 /* --------------------------------------------------
+   Types
+-------------------------------------------------- */
+
+type CurrentUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: "user" | "admin";
+  isEmailVerified: boolean;
+};
+
+
+/* --------------------------------------------------
    Main Routes
 -------------------------------------------------- */
 
@@ -133,8 +152,44 @@ export default function AppRoutes() {
   const [userRole, setUserRole] = useState<"user" | "admin" | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isEmailVerified, setIsEmailVerified] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
   const [selectedItem, setSelectedItem] = useState<Apparel | null>(null);
+
+  
+  // ✅ Fetch user on refresh if token exists
+  useEffect(() => {
+    const loadMe = async () => {
+      if (!hasToken()) return;
+
+      try {
+        const res = await getMe();
+        const u = res.user;
+
+        setCurrentUser({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          isEmailVerified: u.isEmailVerified,
+        });
+
+        setUserRole(u.role);
+        setCurrentUserId(u.id);
+        setIsEmailVerified(u.isEmailVerified);
+      } catch (err) {
+        // token invalid -> logout safely
+        localStorage.removeItem("token");
+        setUserRole(null);
+        setCurrentUserId(null);
+        setIsEmailVerified(false);
+        setCurrentUser(null);
+        navigate("/login", { replace: true });
+      }
+    };
+
+    loadMe();
+  }, [navigate]);
 
   const handleLogin = (
     role: "user" | "admin",
@@ -223,6 +278,10 @@ export default function AppRoutes() {
             />
           }
         />
+                        {/* ✅ Product details page */}
+        <Route path="/items/:id" element={<ProductDetailsPage />} />
+        <Route path="/chat/:itemId/:ownerId" element={<ChatPage />} />
+
 
         <Route
           path="/items/new"
