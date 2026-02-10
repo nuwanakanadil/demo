@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      // ✅ forces browser axios build (fixes "agent" runtime crash)
       axios: "axios/dist/browser/axios.cjs",
     },
   },
