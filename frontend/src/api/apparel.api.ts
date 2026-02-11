@@ -51,7 +51,6 @@ export async function updateItemWithImages(
   return res.data;
 }
 
-
 export type ApparelImage = { url: string; public_id: string };
 
 export type ApparelDetailsResponse = {
@@ -77,4 +76,26 @@ export async function getItemById(id: string) {
   const res = await api.get(`/items/${id}`);
   return res.data as ApparelDetailsResponse;
 }
+
+export type MyItem = {
+  _id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  size?: string;
+  condition?: string;
+  isAvailable?: boolean;
+  images?: { url: string; public_id: string }[];
+};
+
+export async function getMyItems() {
+  const res = await api.get("/items/me/mine");
+  return res.data as { success: boolean; data: MyItem[] };
+}
+
+export async function deleteItem(id: string) {
+  const res = await api.delete(`/items/${id}`);
+  return res.data as { success: boolean; message?: string };
+}
+
 
