@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { Menu, X, LogOut, Plus } from "lucide-react";
+import { Menu, X, LogOut, Plus, User } from "lucide-react";
 import { Button } from "./Button";
 
 interface NavbarProps {
-  currentPage: string; // now expects pathname like "/items"
-  onNavigate: (path: string) => void; // now expects route paths
+  currentPage: string; // pathname like "/items"
+  onNavigate: (path: string) => void; // route paths
   userRole?: "user" | "admin";
   onLogout: () => void;
 }
@@ -18,13 +18,15 @@ export function Navbar({ currentPage, onNavigate, userRole, onLogout }: NavbarPr
     { name: "Incoming Requests", value: "/swaps/incoming" },
     { name: "My Requests", value: "/swaps/outgoing" },
     { name: "History", value: "/swaps/history" },
+
+    // ✅ NEW: Profile page
+    { name: "Profile", value: "/profile" },
   ];
 
   if (userRole === "admin") {
     navItems.push({ name: "Admin Dashboard", value: "/admin" });
   }
 
-  // ✅ active check: pathname startsWith allows nested routes
   const isActive = (path: string) =>
     currentPage === path || currentPage.startsWith(path + "/");
 
@@ -66,6 +68,17 @@ export function Navbar({ currentPage, onNavigate, userRole, onLogout }: NavbarPr
             >
               <Plus className="mr-1.5 h-4 w-4" />
               Add Item
+            </Button>
+
+            {/* ✅ Optional quick profile button on the right */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onNavigate("/profile")}
+              className="mr-3"
+            >
+              <User className="mr-1.5 h-4 w-4" />
+              Profile
             </Button>
 
             <Button variant="ghost" size="sm" onClick={onLogout}>
