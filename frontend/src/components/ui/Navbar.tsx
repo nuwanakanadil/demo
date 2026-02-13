@@ -18,9 +18,6 @@ export function Navbar({ currentPage, onNavigate, userRole, onLogout }: NavbarPr
     { name: "Incoming Requests", value: "/swaps/incoming" },
     { name: "My Requests", value: "/swaps/outgoing" },
     { name: "History", value: "/swaps/history" },
-
-    // ✅ NEW: Profile page
-    { name: "Profile", value: "/profile" },
   ];
 
   if (userRole === "admin") {
