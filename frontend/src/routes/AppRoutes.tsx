@@ -25,13 +25,13 @@ import { MyRequestsPage } from "../modules/swap/MyRequestsPage";
 import { HistoryPage } from "../modules/swap/HistoryPage";
 import { AdminDashboard } from "../modules/admin/AdminDashboard";
 
-import {ProductDetailsPage} from "../modules/apparel/ProductDetailsPage";
-
-
-import { UserProfilePage } from "../modules/User/UserProfile"; // ✅ add this
-import { getMe } from "../api/auth.api"; // ✅ add this
-import { Apparel } from "../types";
+import { ProductDetailsPage } from "../modules/apparel/ProductDetailsPage";
 import { ChatPage } from "../modules/Chat/ChatPage";
+
+import { UserProfilePage } from "../modules/User/UserProfile";
+import { getMe } from "../api/auth.api";
+
+import { Apparel } from "../types";
 
 /* --------------------------------------------------
    Helpers
@@ -46,9 +46,7 @@ function hasToken() {
 -------------------------------------------------- */
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  if (!hasToken()) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!hasToken()) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
@@ -59,9 +57,7 @@ function RequireVerified({
   isVerified: boolean;
   children: React.ReactNode;
 }) {
-  if (!isVerified) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!isVerified) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
@@ -141,7 +137,6 @@ type CurrentUser = {
   isEmailVerified: boolean;
 };
 
-
 /* --------------------------------------------------
    Main Routes
 -------------------------------------------------- */
@@ -156,7 +151,6 @@ export default function AppRoutes() {
 
   const [selectedItem, setSelectedItem] = useState<Apparel | null>(null);
 
-  
   // ✅ Fetch user on refresh if token exists
   useEffect(() => {
     const loadMe = async () => {
@@ -166,14 +160,15 @@ export default function AppRoutes() {
         const res = await getMe();
         const u = res.user;
 
-        setCurrentUser({
+        const nextUser: CurrentUser = {
           id: u.id,
           name: u.name,
           email: u.email,
           role: u.role,
           isEmailVerified: u.isEmailVerified,
-        });
+        };
 
+        setCurrentUser(nextUser);
         setUserRole(u.role);
         setCurrentUserId(u.id);
         setIsEmailVerified(u.isEmailVerified);
@@ -184,6 +179,7 @@ export default function AppRoutes() {
         setCurrentUserId(null);
         setIsEmailVerified(false);
         setCurrentUser(null);
+        setSelectedItem(null);
         navigate("/login", { replace: true });
       }
     };
@@ -191,6 +187,7 @@ export default function AppRoutes() {
     loadMe();
   }, [navigate]);
 
+  // ✅ updated signature to accept verification status
   const handleLogin = (
     role: "user" | "admin",
     userId: string,
@@ -199,6 +196,15 @@ export default function AppRoutes() {
     setUserRole(role);
     setCurrentUserId(userId);
     setIsEmailVerified(verified);
+
+    // ✅ build minimal user object (name/email will be loaded by getMe on refresh)
+    setCurrentUser((prev) => ({
+      id: userId,
+      name: prev?.name || "User",
+      email: prev?.email || "",
+      role,
+      isEmailVerified: verified,
+    }));
 
     if (!verified) {
       navigate("/login", { replace: true });
@@ -213,6 +219,7 @@ export default function AppRoutes() {
     setUserRole(null);
     setCurrentUserId(null);
     setIsEmailVerified(false);
+    setCurrentUser(null);
     setSelectedItem(null);
     navigate("/login", { replace: true });
   };
@@ -278,11 +285,20 @@ export default function AppRoutes() {
             />
           }
         />
-                        {/* ✅ Product details page */}
+
+        {/* ✅ Product details */}
         <Route path="/items/:id" element={<ProductDetailsPage />} />
+
+        {/* ✅ Chat */}
         <Route path="/chat/:itemId/:ownerId" element={<ChatPage />} />
 
+        {/* ✅ Profile (NEW) */}
+        <Route
+          path="/profile"
+          element={<UserProfilePage user={currentUser} />}
+        />
 
+        {/* Verified-only actions */}
         <Route
           path="/items/new"
           element={
