@@ -22,14 +22,15 @@ function createEmailVerifyToken(user) {
 exports.register = async (req, res, next) => {
   try {
     const { name, email, password, role } = req.body;
+    const normalizedEmail = email?.trim().toLowerCase();
 
-    if (!name || !email || !password) {
+    if (!name || !normalizedEmail || !password) {
       const err = new Error("name, email, password are required");
       err.statusCode = 400;
       throw err;
     }
 
-    const exists = await User.findOne({ email });
+    const exists = await User.findOne({ email: normalizedEmail });
     if (exists) {
       const err = new Error("Email already registered");
       err.statusCode = 400;
@@ -38,7 +39,7 @@ exports.register = async (req, res, next) => {
 
     const user = await User.create({
       name,
-      email,
+      email: normalizedEmail,
       password,
       role: role || "user",
     });
@@ -70,14 +71,17 @@ exports.register = async (req, res, next) => {
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = email?.trim().toLowerCase();
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       const err = new Error("email and password are required");
       err.statusCode = 400;
       throw err;
     }
 
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({ email: normalizedEmail }).select(
+      "+password"
+    );
     if (!user) {
       const err = new Error("Invalid credentials");
       err.statusCode = 401;

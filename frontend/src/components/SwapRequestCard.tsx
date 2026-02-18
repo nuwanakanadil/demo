@@ -10,9 +10,8 @@ interface SwapRequestCardProps {
   type: "incoming" | "outgoing";
   onAccept?: (id: string) => void;
   onReject?: (id: string) => void;
-
-  // ✅ new (for owner side after accepted)
   onComplete?: (id: string) => void;
+  onOpenLogistics?: (id: string) => void;
 }
 
 export function SwapRequestCard({
@@ -21,10 +20,12 @@ export function SwapRequestCard({
   onAccept,
   onReject,
   onComplete,
+  onOpenLogistics,
 }: SwapRequestCardProps) {
   const isPending = request.status === "pending";
   const isAccepted = request.status === "accepted";
   const isRejected = request.status === "rejected";
+  const isCompleted = request.status === "completed";
 
   const getStatusBadge = (status: SwapRequest["status"]) => {
     switch (status) {
@@ -32,6 +33,10 @@ export function SwapRequestCard({
         return <Badge variant="success">Accepted</Badge>;
       case "rejected":
         return <Badge variant="error">Rejected</Badge>;
+      case "completed":
+        return <Badge variant="success">Completed</Badge>;
+      case "cancelled":
+        return <Badge variant="error">Cancelled</Badge>;
       default:
         return <Badge variant="warning">Pending</Badge>;
     }
@@ -86,7 +91,6 @@ export function SwapRequestCard({
         )}
       </CardContent>
 
-      {/* ✅ Incoming + Pending: Accept/Reject */}
       {type === "incoming" && isPending && (
         <CardFooter className="bg-gray-50 p-4 flex justify-end space-x-3 border-t border-gray-100">
           <Button
@@ -106,9 +110,15 @@ export function SwapRequestCard({
         </CardFooter>
       )}
 
-      {/* ✅ Incoming + Accepted: Complete button */}
       {type === "incoming" && isAccepted && (
         <CardFooter className="bg-gray-50 p-4 flex justify-end space-x-3 border-t border-gray-100">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenLogistics?.(request.id)}
+          >
+            Manage Logistics
+          </Button>
           <Button
             variant="primary"
             size="sm"
@@ -120,7 +130,18 @@ export function SwapRequestCard({
         </CardFooter>
       )}
 
-      {/* Optional: Incoming + Rejected (no actions) */}
+      {(isAccepted || isCompleted) && type === "outgoing" && (
+        <CardFooter className="bg-gray-50 p-4 flex justify-end border-t border-gray-100">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenLogistics?.(request.id)}
+          >
+            View Logistics
+          </Button>
+        </CardFooter>
+      )}
+
       {type === "incoming" && isRejected && (
         <CardFooter className="bg-gray-50 p-4 flex justify-end border-t border-gray-100">
           <span className="text-sm text-gray-500">No action required</span>

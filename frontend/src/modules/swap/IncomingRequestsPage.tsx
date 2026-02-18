@@ -3,8 +3,10 @@ import { SwapRequest } from "../../types";
 import { SwapRequestCard } from "../../components/SwapRequestCard";
 import { Inbox } from "lucide-react";
 import { getIncomingSwaps, acceptSwap, rejectSwap, completeSwap } from "../../api/swap.api";
+import { useNavigate } from "react-router-dom";
 
 export function IncomingRequestsPage() {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState<SwapRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,6 +93,7 @@ export function IncomingRequestsPage() {
               onAccept={handleAccept}
               onReject={handleReject}
               onComplete={handleComplete}
+              onOpenLogistics={(id) => navigate(`/swaps/${id}/logistics`)}
             />
           ))}
         </div>

@@ -8,6 +8,7 @@ const apparelRoutes = require("./modules/apparel/apparel.routes");
 const uploadRoutes = require("./modules/upload/upload.routes");
 const chatRoutes = require("./modules/chat/chat.routes");
 const ownerReviewRoutes = require("./modules/review/ownerReview.route");
+const wishlistRoutes = require("./modules/wishlist/wishlist.routes");
 
 const app = express();
 
@@ -44,6 +45,7 @@ app.use("/api/items", apparelRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api", ownerReviewRoutes);
+app.use("/api/wishlist", wishlistRoutes);
 
 // ✅ 404 (optional but good)
 app.use((req, res) => {
