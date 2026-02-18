@@ -3,8 +3,10 @@ import { SwapRequest } from "../../types";
 import { SwapRequestCard } from "../../components/SwapRequestCard";
 import { Send } from "lucide-react";
 import { getOutgoingSwaps } from "../../api/swap.api";
+import { useNavigate } from "react-router-dom";
 
 export function MyRequestsPage() {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState<SwapRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +61,12 @@ export function MyRequestsPage() {
       ) : (
         <div className="space-y-4">
           {requests.map((req) => (
-            <SwapRequestCard key={req.id} request={req} type="outgoing" />
+            <SwapRequestCard
+              key={req.id}
+              request={req}
+              type="outgoing"
+              onOpenLogistics={(id) => navigate(`/swaps/${id}/logistics`)}
+            />
           ))}
         </div>
       )}

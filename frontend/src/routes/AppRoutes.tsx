@@ -28,10 +28,11 @@ import { AdminDashboard } from "../modules/admin/AdminDashboard";
 import {ProductDetailsPage} from "../modules/apparel/ProductDetailsPage";
 
 
-import { UserProfilePage } from "../modules/User/UserProfile"; // ✅ add this
 import { getMe } from "../api/auth.api"; // ✅ add this
 import { Apparel } from "../types";
 import { ChatPage } from "../modules/Chat/ChatPage";
+import { WishlistHubPage } from "../pages/WishlistHubPage";
+import { SwapLogisticsPage } from "../pages/Delevery/SwapLogisticsPage";
 
 /* --------------------------------------------------
    Helpers
@@ -268,6 +269,7 @@ export default function AppRoutes() {
         }
       >
         {/* Items */}
+
         <Route
           path="/items"
           element={
@@ -279,6 +281,7 @@ export default function AppRoutes() {
           }
         />
                         {/* ✅ Product details page */}
+        <Route path="/wishlist" element={<WishlistHubPage />} />
         <Route path="/items/:id" element={<ProductDetailsPage />} />
         <Route path="/chat/:itemId/:ownerId" element={<ChatPage />} />
 
@@ -324,6 +327,7 @@ export default function AppRoutes() {
         <Route path="/swaps/incoming" element={<IncomingRequestsPage />} />
         <Route path="/swaps/outgoing" element={<MyRequestsPage />} />
         <Route path="/swaps/history" element={<HistoryPage />} />
+        <Route path="/swaps/:id/logistics" element={<SwapLogisticsPage />} />
 
         {/* Admin */}
         <Route
@@ -343,3 +347,7 @@ export default function AppRoutes() {
     </Routes>
   );
 }
+
+
+
+

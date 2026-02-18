@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Menu, X, LogOut, Plus } from "lucide-react";
 import { Button } from "./Button";
+import { getWishlistItems, WISHLIST_COUNT_EVENT } from "../../api/wishlist.api";
 
 interface NavbarProps {
   currentPage: string; // now expects pathname like "/items"
@@ -11,10 +12,12 @@ interface NavbarProps {
 
 export function Navbar({ currentPage, onNavigate, userRole, onLogout }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [wishlistCount, setWishlistCount] = useState(0);
 
   // ✅ Route paths (React Router)
   const navItems = [
     { name: "Browse Items", value: "/items" },
+    { name: "Wishlist", value: "/wishlist" },
     { name: "Incoming Requests", value: "/swaps/incoming" },
     { name: "My Requests", value: "/swaps/outgoing" },
     { name: "History", value: "/swaps/history" },
@@ -27,6 +30,41 @@ export function Navbar({ currentPage, onNavigate, userRole, onLogout }: NavbarPr
   // ✅ active check: pathname startsWith allows nested routes
   const isActive = (path: string) =>
     currentPage === path || currentPage.startsWith(path + "/");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadWishlistCount = async () => {
+      try {
+        const items = await getWishlistItems();
+        if (!isMounted) return;
+        setWishlistCount(Array.isArray(items) ? items.length : 0);
+      } catch {
+        if (!isMounted) return;
+        setWishlistCount(0);
+      }
+    };
+
+    void loadWishlistCount();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentPage]);
+
+  useEffect(() => {
+    const onWishlistCountChanged = (event: Event) => {
+      const customEvent = event as CustomEvent<number>;
+      if (typeof customEvent.detail === "number") {
+        setWishlistCount(customEvent.detail);
+      }
+    };
+
+    window.addEventListener(WISHLIST_COUNT_EVENT, onWishlistCountChanged as EventListener);
+    return () => {
+      window.removeEventListener(WISHLIST_COUNT_EVENT, onWishlistCountChanged as EventListener);
+    };
+  }, []);
 
   return (
     <nav className="border-b border-neutral-200 bg-white sticky top-0 z-50">
@@ -52,6 +90,11 @@ export function Navbar({ currentPage, onNavigate, userRole, onLogout }: NavbarPr
                   }`}
                 >
                   {item.name}
+                  {item.value === "/wishlist" && wishlistCount > 0 && (
+                    <span className="ml-2 inline-flex min-w-[20px] items-center justify-center rounded-full bg-brand-500 px-1.5 py-0.5 text-xs font-semibold text-white">
+                      {wishlistCount}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -103,6 +146,11 @@ export function Navbar({ currentPage, onNavigate, userRole, onLogout }: NavbarPr
                 }`}
               >
                 {item.name}
+                {item.value === "/wishlist" && wishlistCount > 0 && (
+                  <span className="ml-2 inline-flex min-w-[20px] items-center justify-center rounded-full bg-brand-500 px-1.5 py-0.5 text-xs font-semibold text-white">
+                    {wishlistCount}
+                  </span>
+                )}
               </button>
             ))}
 
