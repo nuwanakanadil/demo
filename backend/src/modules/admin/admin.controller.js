@@ -84,7 +84,7 @@ exports.updateItemStatus = async (req, res, next) => {
   try {
     const { status } = req.body; // blocked, active, unavailable
 
-    const item = await Item.findByIdAndUpdate(
+    const item = await item.findByIdAndUpdate(
       req.params.id,
       { status },
       { new: true }
