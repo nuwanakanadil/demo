@@ -1,200 +1,249 @@
-const User = require("../auth/auth.model");
+// import { find, findByIdAndDelete, findByIdAndUpdate, findById } from "../auth/auth.model";
+import Apparel from "../apparel/apparel.model.js";
+import User from "../auth/auth.model.js";
+import OwnerReview from "../review/ownerReview.model.js";
 
 // ---------------- USERS ----------------
-exports.getAllUsers = async (req, res, next) => {
+export const getAllUsers = async (req, res, next) => {
   try {
     const { accountStatus, role } = req.query;
     let filter = {};
-    if (accountStatus) filter.accountStatus = accountStatus;
-    if (role) filter.role = role;
 
-    const users = await User.find(filter).select("-password").sort({ createdAt: -1 });
-    res.json({ success: true, data: users });
+    if (accountStatus) {
+      filter.accountStatus = accountStatus;
+    }
+
+    if (role) {
+      filter.role = role;
+    }
+
+    const users = await User.find(filter)
+      .select("-password") 
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      data: users
+    });
+
   } catch (err) {
     next(err);
   }
 };
 
-exports.deleteUser = async (req, res, next) => {
-  try {
-    await User.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: "User deleted successfully" });
-  } catch (err) {
-    next(err);
-  }
-};
 
-// ---------------- ADMIN ACTIONS ----------------
-exports.suspendUser = async (req, res, next) => {
-  try {
-    await User.findByIdAndUpdate(req.params.id, { accountStatus: "suspended" });
-    res.json({ success: true, message: "User suspended successfully" });
-  } catch (err) {
-    next(err);
-  }
-};
+// export async function deleteUser(req, res, next) {
+//   try {
+//     await findByIdAndDelete(req.params.id);
+//     res.json({ success: true, message: "User deleted successfully" });
+//   } catch (err) {
+//     next(err);
+//   }
+// }
 
-exports.banUser = async (req, res, next) => {
-  try {
-    await User.findByIdAndUpdate(req.params.id, { accountStatus: "banned" });
-    res.json({ success: true, message: "User banned successfully" });
-  } catch (err) {
-    next(err);
-  }
-};
+// // ---------------- ADMIN ACTIONS ----------------
+// export async function suspendUser(req, res, next) {
+//   try {
+//     await findByIdAndUpdate(req.params.id, { accountStatus: "suspended" });
+//     res.json({ success: true, message: "User suspended successfully" });
+//   } catch (err) {
+//     next(err);
+//   }
+// }
 
-exports.activateUser = async (req, res, next) => {
-  try {
-    await User.findByIdAndUpdate(req.params.id, { accountStatus: "active" });
-    res.json({ success: true, message: "User activated successfully" });
-  } catch (err) {
-    next(err);
-  }
-};
+// export async function banUser(req, res, next) {
+//   try {
+//     await findByIdAndUpdate(req.params.id, { accountStatus: "banned" });
+//     res.json({ success: true, message: "User banned successfully" });
+//   } catch (err) {
+//     next(err);
+//   }
+// }
 
-exports.manualVerifyEmail = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.params.id);
-    if (!user) throw new Error("User not found");
-    user.isEmailVerified = true;
-    await user.save({ validateBeforeSave: false });
-    res.json({ success: true, message: "Email verified manually" });
-  } catch (err) {
-    next(err);
-  }
-};
+// export async function activateUser(req, res, next) {
+//   try {
+//     await findByIdAndUpdate(req.params.id, { accountStatus: "active" });
+//     res.json({ success: true, message: "User activated successfully" });
+//   } catch (err) {
+//     next(err);
+//   }
+// }
+
+// export async function manualVerifyEmail(req, res, next) {
+//   try {
+//     const user = await findById(req.params.id);
+//     if (!user) throw new Error("User not found");
+//     user.isEmailVerified = true;
+//     await user.save({ validateBeforeSave: false });
+//     res.json({ success: true, message: "Email verified manually" });
+//   } catch (err) {
+//     next(err);
+//   }
+// }
 
 // ---------------- ITEMS ----------------
 // Get all items
-exports.getAllItems = async (req, res, next) => {
+export async function getAllItems(req, res, next) {
   try {
-    const items = await Item.find()
-      .populate("owner", "name email")
-      .sort({ createdAt: -1 });
-
+    const items = await Apparel.find();
     res.status(200).json({ success: true, data: items });
   } catch (err) {
     next(err);
   }
-};
+}
 
 
-// Block / Unblock item
-exports.updateItemStatus = async (req, res, next) => {
-  try {
-    const { status } = req.body; // blocked, active, unavailable
+//Block / Unblock item
+export async function updateItemStatus(req, res, next) {
+    try {
+    const { block } = req.body; // blocked, active, unavailable
 
-    const item = await item.findByIdAndUpdate(
+    const item = await Apparel.findByIdAndUpdate(
       req.params.id,
-      { status },
+      { isBlocked: block },
       { new: true }
     );
 
     if (!item) return res.status(404).json({ message: "Item not found" });
 
-    res.status(200).json({ success: true, message: "Item updated", data: item });
+    res.status(200).json({
+      success: true,
+      message: `Item ${block ? "blocked" : "unblocked"}`,
+      data: item,
+    });
   } catch (err) {
     next(err);
   }
-};
+}
 
 
 // Delete item
-exports.deleteItem = async (req, res, next) => {
+export async function deleteItem(req, res, next) {
   try {
-    await Item.findByIdAndDelete(req.params.id);
-    res.status(200).json({ success: true, message: "Item deleted" });
+    const item = await Apparel.findByIdAndDelete(req.params.id);
+
+    if (!item) {
+      return res.status(404).json({
+        success: false,
+        message: "Item not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Item deleted successfully"
+    });
+
   } catch (err) {
     next(err);
   }
-};
+}
+// // ---------------- SWAPS ----------------
+// // Get all swaps
+// export async function getAllSwaps(req, res, next) {
+//   try {
+//     const swaps = await Swap.find()
+//       .populate("requester", "name email")
+//       .populate("owner", "name email")
+//       .sort({ createdAt: -1 });
 
-// ---------------- SWAPS ----------------
-// Get all swaps
-exports.getAllSwaps = async (req, res, next) => {
-  try {
-    const swaps = await Swap.find()
-      .populate("requester", "name email")
-      .populate("owner", "name email")
-      .sort({ createdAt: -1 });
-
-    res.status(200).json({ success: true, data: swaps });
-  } catch (err) {
-    next(err);
-  }
-};
+//     res.status(200).json({ success: true, data: swaps });
+//   } catch (err) {
+//     next(err);
+//   }
+// }
 
 
-// Update swap status
-exports.updateSwapStatus = async (req, res, next) => {
-  try {
-    const { status } = req.body; // cancelled, completed, locked
+// // Update swap status
+// export async function updateSwapStatus(req, res, next) {
+//   try {
+//     const { status } = req.body; // cancelled, completed, locked
 
-    const swap = await Swap.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    );
+//     const swap = await Swap.findByIdAndUpdate(
+//       req.params.id,
+//       { status },
+//       { new: true }
+//     );
 
-    if (!swap) return res.status(404).json({ message: "Swap not found" });
+//     if (!swap) return res.status(404).json({ message: "Swap not found" });
 
-    res.status(200).json({ success: true, message: "Swap updated", data: swap });
-  } catch (err) {
-    next(err);
-  }
-};
+//     res.status(200).json({ success: true, message: "Swap updated", data: swap });
+//   } catch (err) {
+//     next(err);
+//   }
+// }
 
-// ---------------- REVIEWS ----------------
+// // ---------------- REVIEWS ----------------
 // Get all reviews
-exports.getAllReviews = async (req, res, next) => {
+export async function getAllReviews(req, res, next) {
   try {
-    const reviews = await Review.find()
-      .populate("reviewer", "name email")
+    const reviews = await OwnerReview.find()
+      .populate("reviewerId", "name email")
+      .populate("revieweeId", "name email")
+      .populate("itemId", "title")
       .sort({ createdAt: -1 });
 
-    res.status(200).json({ success: true, data: reviews });
+    return res.status(200).json({
+      success: true,
+      count: reviews.length,
+      data: reviews
+    });
+
   } catch (err) {
     next(err);
   }
-};
+}
 
 
-// Delete review
-exports.deleteReview = async (req, res, next) => {
+//  Delete review
+export async function deleteReview(req, res, next) {
   try {
-    await Review.findByIdAndDelete(req.params.id);
-    res.status(200).json({ success: true, message: "Review deleted" });
+    const review = await OwnerReview.findByIdAndDelete(req.params.id);
+
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        message: "Review not found"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Review deleted successfully"
+    });
+
   } catch (err) {
     next(err);
   }
-};
+}
 
-// ---------------- REPORTS ----------------
-// Get all reports
-exports.getAllReports = async (req, res, next) => {
-  try {
-    const reports = await Report.find()
-      .populate("reportedBy", "name email")
-      .sort({ createdAt: -1 });
+// // ---------------- REPORTS ----------------
+// // Get all reports
+// export async function getAllReports(req, res, next) {
+//   try {
+//     const reports = await Report.find()
+//       .populate("reportedBy", "name email")
+//       .sort({ createdAt: -1 });
 
-    res.status(200).json({ success: true, data: reports });
-  } catch (err) {
-    next(err);
-  }
-};
+//     res.status(200).json({ success: true, data: reports });
+//   } catch (err) {
+//     next(err);
+//   }
+// }
 
 
-// Mark report resolved
-exports.resolveReport = async (req, res, next) => {
-  try {
-    const report = await Report.findByIdAndUpdate(
-      req.params.id,
-      { status: "resolved" },
-      { new: true }
-    );
+// // Mark report resolved
+// export async function resolveReport(req, res, next) {
+//   try {
+//     const report = await Report.findByIdAndUpdate(
+//       req.params.id,
+//       { status: "resolved" },
+//       { new: true }
+//     );
 
-    res.status(200).json({ success: true, message: "Report resolved" });
-  } catch (err) {
-    next(err);
-  }
-};
+//     res.status(200).json({ success: true, message: "Report resolved" });
+//   } catch (err) {
+//     next(err);
+//   }
+// }
