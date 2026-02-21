@@ -1,8 +1,8 @@
-// import { find, findByIdAndDelete, findByIdAndUpdate, findById } from "../auth/auth.model";
 import Apparel from "../apparel/apparel.model.js";
 import User from "../auth/auth.model.js";
 import OwnerReview from "../review/ownerReview.model.js";
-import deleteFromCloudinary from "../../utils/cloudinaryDelete.js"
+import deleteFromCloudinary from "../../utils/cloudinaryDelete.js";
+import Swap from "../swap/swap.model.js";
 
 
 // ---------------- USERS ----------------

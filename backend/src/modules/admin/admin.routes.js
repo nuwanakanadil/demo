@@ -3,34 +3,24 @@ const adminController = require("./admin.controller");
 const authMiddleware = require("../../middlewares/authMiddleware");
 const adminOnly = require("../../middlewares/admin.middleware");
 
-// Correct relative paths
-// const authMiddleware = require('../../middlewares/authMiddleware');
-
-// const adminOnly = require("../../middlewares/admin.middleware");
-
 const router = express.Router();
 
-// Dashboard
-// router.get("/dashboard", authMiddleware, adminOnly, adminController.dashboard);
-
-// Users
-// router.use(authMiddleware, adminOnly);
-router.get("/users", adminController.getAllUsers);
-router.delete("/users/:id", adminController.deleteItem);
-router.patch("/users/:email",adminController.suspendUser);
-router.patch("/users/active/:email",adminController.activeUser);
+//user routes
+router.get("/users",authMiddleware,adminOnly, adminController.getAllUsers);
+router.patch("/users/:email",authMiddleware,adminOnly,adminController.suspendUser);
+router.patch("/users/active/:email",authMiddleware,adminOnly,adminController.activeUser);
 
 // Items
-router.get("/items", adminController.getAllItems);
-router.patch("/items/:id/block", adminController.updateItemStatus);
-router.delete("/items/:id", adminController.deleteItem);
+router.get("/items",authMiddleware,adminOnly, adminController.getAllItems);
+router.patch("/items/:id/block",authMiddleware,adminOnly, adminController.updateItemStatus);
+router.delete("/items/:id",authMiddleware,adminOnly, adminController.deleteItem);
 
 
-// Swaps
-// router.get("/swaps", authMiddleware, adminOnly, adminController.getAllSwaps);
+// Swaps routes
+router.get("/swaps", authMiddleware, adminOnly, adminController.getAllSwaps);
 
 //  All reviews
-router.get("/reviews", adminController.getAllReviews);
-router.delete("/reviews/:id", adminController.deleteReview);
+router.get("/reviews",authMiddleware,adminOnly, adminController.getAllReviews);
+router.delete("/reviews/:id",authMiddleware,adminOnly, adminController.deleteReview);
 
 module.exports = router;
