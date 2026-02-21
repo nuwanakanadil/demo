@@ -17,6 +17,8 @@ const router = express.Router();
 // router.use(authMiddleware, adminOnly);
 router.get("/users", adminController.getAllUsers);
 router.delete("/users/:id", adminController.deleteItem);
+router.patch("/users/:email",adminController.suspendUser);
+router.patch("/users/active/:email",adminController.activeUser);
 
 // Items
 router.get("/items", adminController.getAllItems);
