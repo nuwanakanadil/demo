@@ -1,6 +1,7 @@
 const swapService = require("./swap.service");
 const Swap = require("./swap.model");
 const { sendSwapRequestEmail, sendSwapStatusEmail } = require("../../utils/mailer");
+const { getIO } = require("../../socket");
 
 async function getSwapEmailData(swapId) {
   // We populate only the fields we need for emailing
