@@ -1,7 +1,11 @@
 const mongoose = require("mongoose");
 const Swap = require("./swap.model");
 const Apparel = require("../apparel/apparel.model");
+
 const Logistics = require("../logistics/logistics.model");
+
+const { createNotification } = require("../notification/notification.service");
+
 
 function forbidden(msg) {
   const err = new Error(msg);
@@ -26,7 +30,12 @@ function notFound(msg) {
  * - both items must be available
  * - no duplicate PENDING request for same requester+requestedItem
  */
-async function createSwap({ requesterId, requestedItemId, offeredItemId, message }) {
+async function createSwap({
+  requesterId,
+  requestedItemId,
+  offeredItemId,
+  message,
+}) {
   if (!requestedItemId || !offeredItemId) {
     throw badRequest("requestedItemId and offeredItemId are required.");
   }
@@ -42,8 +51,10 @@ async function createSwap({ requesterId, requestedItemId, offeredItemId, message
   if (!requestedItem) throw notFound("Requested item not found.");
   if (!offeredItem) throw notFound("Offered item not found.");
 
-  if (requestedItem.isAvailable === false) throw badRequest("Requested item is not available.");
-  if (offeredItem.isAvailable === false) throw badRequest("Offered item is not available.");
+  if (requestedItem.isAvailable === false)
+    throw badRequest("Requested item is not available.");
+  if (offeredItem.isAvailable === false)
+    throw badRequest("Offered item is not available.");
 
   const requestedOwnerId = String(requestedItem.owner);
   const offeredOwnerId = String(offeredItem.owner);
@@ -60,7 +71,8 @@ async function createSwap({ requesterId, requestedItemId, offeredItemId, message
     requestedItem: requestedItemId,
     status: "PENDING",
   });
-  if (existing) throw badRequest("You already have a pending swap request for this item.");
+  if (existing)
+    throw badRequest("You already have a pending swap request for this item.");
 
   const swap = await Swap.create({
     requester: requesterId,
@@ -68,6 +80,15 @@ async function createSwap({ requesterId, requestedItemId, offeredItemId, message
     requestedItem: requestedItemId,
     offeredItem: offeredItemId,
     message: message || "",
+  });
+
+  await createNotification({
+    userId: String(requestedItem.owner), // owner receives
+    type: "SWAP_REQUEST",
+    title: "New swap request",
+    message: `Someone requested "${requestedItem.title}"`,
+    link: "/swaps/incoming",
+    meta: { swapId: String(swap._id) },
   });
 
   return swap;
@@ -239,7 +260,9 @@ async function acceptSwap({ swapId, ownerId }) {
       throw forbidden("Only the item owner can accept this swap.");
     }
     if (swap.status !== "PENDING") {
-      throw badRequest(`Only PENDING swaps can be accepted. Current status: ${swap.status}`);
+      throw badRequest(
+        `Only PENDING swaps can be accepted. Current status: ${swap.status}`,
+      );
     }
 
     const [requestedItem, offeredItem] = await Promise.all([
@@ -250,17 +273,31 @@ async function acceptSwap({ swapId, ownerId }) {
     if (!requestedItem) throw notFound("Requested item not found.");
     if (!offeredItem) throw notFound("Offered item not found.");
 
-    if (requestedItem.isAvailable === false) throw badRequest("Requested item is no longer available.");
-    if (offeredItem.isAvailable === false) throw badRequest("Offered item is no longer available.");
+    if (requestedItem.isAvailable === false)
+      throw badRequest("Requested item is no longer available.");
+    if (offeredItem.isAvailable === false)
+      throw badRequest("Offered item is no longer available.");
 
     // Reserve both items
     requestedItem.isAvailable = false;
     offeredItem.isAvailable = false;
-    await Promise.all([requestedItem.save({ session }), offeredItem.save({ session })]);
+    await Promise.all([
+      requestedItem.save({ session }),
+      offeredItem.save({ session }),
+    ]);
 
     // Accept this swap
     swap.status = "ACCEPTED";
     await swap.save({ session });
+
+    await createNotification({
+      userId: String(swap.requester),
+      type: "SWAP_ACCEPTED",
+      title: "Swap accepted ✅",
+      message: `Your request for "${requestedItem.title}" was accepted`,
+      link: "/swaps/outgoing",
+      meta: { swapId: String(swap._id) },
+    });
 
     // Cancel other pending swaps for the same requestedItem
     await Swap.updateMany(
@@ -270,7 +307,7 @@ async function acceptSwap({ swapId, ownerId }) {
         status: "PENDING",
       },
       { $set: { status: "CANCELLED" } },
-      { session }
+      { session },
     );
 
     await session.commitTransaction();
@@ -297,11 +334,22 @@ async function rejectSwap({ swapId, ownerId }) {
     throw forbidden("Only the item owner can reject this swap.");
   }
   if (swap.status !== "PENDING") {
-    throw badRequest(`Only PENDING swaps can be rejected. Current status: ${swap.status}`);
+    throw badRequest(
+      `Only PENDING swaps can be rejected. Current status: ${swap.status}`,
+    );
   }
 
   swap.status = "REJECTED";
   await swap.save();
+
+  await createNotification({
+    userId: String(swap.requester),
+    type: "SWAP_REJECTED",
+    title: "Swap rejected ❌",
+    message: "Your swap request was rejected",
+    link: "/swaps/outgoing",
+    meta: { swapId: String(swap._id) },
+  });
 
   return swap;
 }
@@ -328,7 +376,9 @@ async function completeSwap({ swapId, actorId }) {
       throw forbidden("Only the owner or requester can mark this as completed.");
     }
     if (swap.status !== "ACCEPTED") {
-      throw badRequest(`Only ACCEPTED swaps can be completed. Current status: ${swap.status}`);
+      throw badRequest(
+        `Only ACCEPTED swaps can be completed. Current status: ${swap.status}`,
+      );
     }
 
     const [requestedItem, offeredItem] = await Promise.all([
@@ -339,8 +389,8 @@ async function completeSwap({ swapId, actorId }) {
     if (!requestedItem) throw notFound("Requested item not found.");
     if (!offeredItem) throw notFound("Offered item not found.");
 
-    const oldOwnerId = requestedItem.owner;      // owner
-    const requesterId = swap.requester;          // requester
+    const oldOwnerId = requestedItem.owner; // owner
+    const requesterId = swap.requester; // requester
 
     // Transfer owners
     requestedItem.owner = requesterId;
@@ -350,7 +400,10 @@ async function completeSwap({ swapId, actorId }) {
     requestedItem.isAvailable = false;
     offeredItem.isAvailable = false;
 
-    await Promise.all([requestedItem.save({ session }), offeredItem.save({ session })]);
+    await Promise.all([
+      requestedItem.save({ session }),
+      offeredItem.save({ session }),
+    ]);
 
     swap.status = "COMPLETED";
     swap.logistics = {
@@ -360,6 +413,7 @@ async function completeSwap({ swapId, actorId }) {
       lastUpdatedAt: new Date(),
     };
     await swap.save({ session });
+
 
     await Logistics.updateOne(
       { swap: swap._id },
@@ -382,6 +436,25 @@ async function completeSwap({ swapId, actorId }) {
       },
       { upsert: true, session }
     );
+
+    await createNotification({
+      userId: String(swap.requester),
+      type: "SWAP_COMPLETED",
+      title: "Swap completed 🎉",
+      message: "Your swap was marked as completed",
+      link: "/swaps/history",
+      meta: { swapId: String(swap._id) },
+    });
+
+    await createNotification({
+      userId: String(swap.owner),
+      type: "SWAP_COMPLETED",
+      title: "Swap completed 🎉",
+      message: "You marked a swap as completed",
+      link: "/swaps/history",
+      meta: { swapId: String(swap._id) },
+    });
+
 
     await session.commitTransaction();
     session.endSession();

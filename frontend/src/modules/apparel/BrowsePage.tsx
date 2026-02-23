@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ApparelCard } from "../../components/ApparelCard";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
@@ -18,7 +19,13 @@ interface BrowsePageProps {
   onEditItem: (itemId: string) => void;
 }
 
-export function BrowsePage({ onRequestSwap, currentUserId, onEditItem }: BrowsePageProps) {
+export function BrowsePage({
+  onRequestSwap,
+  currentUserId,
+  onEditItem,
+}: BrowsePageProps) {
+  const navigate = useNavigate();
+
   const [items, setItems] = useState<Apparel[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +35,14 @@ export function BrowsePage({ onRequestSwap, currentUserId, onEditItem }: BrowseP
   const [wishlistIds, setWishlistIds] = useState<string[]>([]);
   const [wishlistBusyId, setWishlistBusyId] = useState<string | null>(null);
 
-  const categories = ["All", "Tops", "Bottoms", "Outerwear", "Shoes", "Accessories"];
+  const categories = [
+    "All",
+    "Tops",
+    "Bottoms",
+    "Outerwear",
+    "Shoes",
+    "Accessories",
+  ];
 
   const fetchItems = async () => {
     try {
@@ -67,8 +81,11 @@ export function BrowsePage({ onRequestSwap, currentUserId, onEditItem }: BrowseP
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
+      const matchesSearch = item.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesCategory =
+        selectedCategory === "All" || item.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
   }, [items, searchTerm, selectedCategory]);
@@ -183,10 +200,14 @@ export function BrowsePage({ onRequestSwap, currentUserId, onEditItem }: BrowseP
                   onRequestSwap={onRequestSwap}
                   showEdit={isOwner}
                   onEdit={() => onEditItem(item.id)}
+
                   isWishlisted={isSaved}
                   onToggleWishlist={handleToggleWishlist}
                   wishlistDisabled={Boolean(isOwner && !isSaved)}
                   wishlistLoading={wishlistBusyId === item.id}
+
+                  onOpenDetails={() => navigate(`/items/${item.id}`)}
+
                 />
               );
             })}
@@ -195,8 +216,17 @@ export function BrowsePage({ onRequestSwap, currentUserId, onEditItem }: BrowseP
           {filteredItems.length === 0 && (
             <div className="text-center py-20">
               <Filter className="mx-auto h-12 w-12 text-gray-300" />
+
               <h3 className="mt-2 text-sm font-medium text-gray-900">No items found</h3>
               <p className="mt-1 text-sm text-gray-500">Try adjusting your search or filters.</p>
+
+              <h3 className="mt-2 text-sm font-medium text-gray-900">
+                No items found
+              </h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Try adjusting your search or filters.
+              </p>
+
             </div>
           )}
         </>
