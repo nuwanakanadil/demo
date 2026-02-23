@@ -32,11 +32,6 @@ export interface SwapApi {
     lastUpdatedBy?: { _id?: string; name?: string };
     lastUpdatedAt?: string;
   };
-
-
-  requestedItem: any; // populated Apparel
-  offeredItem: any;   // populated Apparel
-
 }
 
 function mapStatus(status: SwapApi["status"]): SwapRequest["status"] {
@@ -74,8 +69,6 @@ export function mapSwapApiToUi(s: SwapApi): SwapRequest {
 
     requestedItemImageUrl: pickImage(s.requestedItem),
 
-    offeredItemId: s.offeredItem?._id || "",
-    offeredItemName: s.offeredItem?.title || "Item",
     offeredItemImageUrl: pickImage(s.offeredItem),
 
     status: mapStatus(s.status),
