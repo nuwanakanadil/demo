@@ -1,7 +1,11 @@
 const mongoose = require("mongoose");
 const Swap = require("./swap.model");
 const Apparel = require("../apparel/apparel.model");
+
+const Logistics = require("../logistics/logistics.model");
+
 const { createNotification } = require("../notification/notification.service");
+
 
 function forbidden(msg) {
   const err = new Error(msg);
@@ -104,6 +108,136 @@ async function getOutgoing(requesterId) {
     .populate("requestedItem")
     .populate("offeredItem")
     .sort({ createdAt: -1 });
+}
+
+async function getByIdForViewer({ swapId, viewerId, viewerRole }) {
+  const swap = await Swap.findById(swapId)
+    .populate("requester", "name email")
+    .populate("owner", "name email")
+    .populate("requestedItem")
+    .populate("offeredItem")
+    .populate("logistics.lastUpdatedBy", "name email");
+
+  if (!swap) throw notFound("Swap request not found.");
+
+  const isParticipant =
+    String(swap.owner?._id || swap.owner) === String(viewerId) ||
+    String(swap.requester?._id || swap.requester) === String(viewerId);
+
+  if (!isParticipant && viewerRole !== "admin") {
+    throw forbidden("You are not allowed to view this swap logistics.");
+  }
+
+  return swap;
+}
+
+async function updateLogistics({
+  swapId,
+  userId,
+  method,
+  meetupLocation,
+  meetupAt,
+  deliveryOption,
+  trackingRef,
+  deliveryAddress,
+  phoneNumber,
+}) {
+  const swap = await Swap.findById(swapId);
+  if (!swap) throw notFound("Swap request not found.");
+
+  const isParticipant =
+    String(swap.owner) === String(userId) || String(swap.requester) === String(userId);
+  if (!isParticipant) {
+    throw forbidden("Only swap participants can update logistics.");
+  }
+  if (swap.status !== "ACCEPTED") {
+    throw badRequest("Logistics can be edited only when swap is ACCEPTED.");
+  }
+
+  if (!["MEETUP", "DELIVERY"].includes(method)) {
+    throw badRequest("method must be either MEETUP or DELIVERY.");
+  }
+
+  const logistics = swap.logistics || {};
+  const existingMethod = logistics.method;
+  if (existingMethod && existingMethod !== method) {
+    throw badRequest(`Logistics method is already set to ${existingMethod} and cannot be changed.`);
+  }
+  logistics.method = method;
+
+  if (method === "MEETUP") {
+    if (!meetupLocation || !meetupAt) {
+      throw badRequest("meetupLocation and meetupAt are required for MEETUP.");
+    }
+    logistics.meetupLocation = String(meetupLocation).trim();
+    logistics.meetupAt = new Date(meetupAt);
+    if (Number.isNaN(logistics.meetupAt.getTime())) {
+      throw badRequest("Invalid meetupAt date/time.");
+    }
+
+    logistics.deliveryOption = undefined;
+    logistics.trackingRef = undefined;
+    logistics.deliveryAddress = undefined;
+    logistics.phoneNumber = undefined;
+    logistics.status = "IN_TRANSIT";
+  } else {
+    if (!deliveryOption) {
+      throw badRequest("deliveryOption is required for DELIVERY.");
+    }
+    const normalizedDeliveryOption = String(deliveryOption).trim();
+    const normalizedDeliveryAddress = deliveryAddress ? String(deliveryAddress).trim() : "";
+    const normalizedPhoneNumber = phoneNumber ? String(phoneNumber).trim() : "";
+
+    if (["Postal", "Courier"].includes(normalizedDeliveryOption)) {
+      if (!normalizedDeliveryAddress || !normalizedPhoneNumber) {
+        throw badRequest("deliveryAddress and phoneNumber are required for Postal and Courier delivery options.");
+      }
+    }
+
+    logistics.deliveryOption = normalizedDeliveryOption;
+    logistics.trackingRef = trackingRef ? String(trackingRef).trim() : undefined;
+    logistics.deliveryAddress = normalizedDeliveryAddress || undefined;
+    logistics.phoneNumber = normalizedPhoneNumber || undefined;
+
+    logistics.meetupLocation = undefined;
+    logistics.meetupAt = undefined;
+    logistics.status = logistics.trackingRef ? "IN_TRANSIT" : "SCHEDULED";
+  }
+
+  logistics.lastUpdatedBy = userId;
+  logistics.lastUpdatedAt = new Date();
+
+  swap.logistics = logistics;
+  await swap.save();
+
+  await Logistics.updateOne(
+    { swap: swap._id },
+    {
+      $set: {
+        swap: swap._id,
+        requester: swap.requester,
+        owner: swap.owner,
+        method: logistics.method,
+        meetupLocation: logistics.meetupLocation || null,
+        meetupAt: logistics.meetupAt || null,
+        deliveryOption: logistics.deliveryOption || null,
+        trackingRef: logistics.trackingRef || null,
+        deliveryAddress: logistics.deliveryAddress || null,
+        phoneNumber: logistics.phoneNumber || null,
+        status: logistics.status,
+        lastUpdatedBy: logistics.lastUpdatedBy,
+        lastUpdatedAt: logistics.lastUpdatedAt,
+      },
+    },
+    { upsert: true }
+  );
+
+  return Swap.findById(swap._id)
+    .populate("requester", "name email")
+    .populate("owner", "name email")
+    .populate("requestedItem")
+    .populate("offeredItem")
+    .populate("logistics.lastUpdatedBy", "name email");
 }
 
 /**
@@ -223,12 +357,12 @@ async function rejectSwap({ swapId, ownerId }) {
 /**
  * COMPLETE SWAP (transaction)
  * Option B (recommended): transfer ownership
- * - only owner can complete
+ * - owner or requester can complete
  * - must be ACCEPTED
  * - swap item owners
  * - keep items reserved (isAvailable=false). (You can change to true if you want relisting)
  */
-async function completeSwap({ swapId, ownerId }) {
+async function completeSwap({ swapId, actorId }) {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -236,8 +370,10 @@ async function completeSwap({ swapId, ownerId }) {
     const swap = await Swap.findById(swapId).session(session);
     if (!swap) throw notFound("Swap request not found.");
 
-    if (String(swap.owner) !== String(ownerId)) {
-      throw forbidden("Only the item owner can mark this as completed.");
+    const isParticipant =
+      String(swap.owner) === String(actorId) || String(swap.requester) === String(actorId);
+    if (!isParticipant) {
+      throw forbidden("Only the owner or requester can mark this as completed.");
     }
     if (swap.status !== "ACCEPTED") {
       throw badRequest(
@@ -270,7 +406,36 @@ async function completeSwap({ swapId, ownerId }) {
     ]);
 
     swap.status = "COMPLETED";
+    swap.logistics = {
+      ...(swap.logistics?.toObject ? swap.logistics.toObject() : swap.logistics),
+      status: "DONE",
+      lastUpdatedBy: actorId,
+      lastUpdatedAt: new Date(),
+    };
     await swap.save({ session });
+
+
+    await Logistics.updateOne(
+      { swap: swap._id },
+      {
+        $set: {
+          swap: swap._id,
+          requester: swap.requester,
+          owner: swap.owner,
+          method: swap.logistics?.method || "MEETUP",
+          meetupLocation: swap.logistics?.meetupLocation || null,
+          meetupAt: swap.logistics?.meetupAt || null,
+          deliveryOption: swap.logistics?.deliveryOption || null,
+          trackingRef: swap.logistics?.trackingRef || null,
+          deliveryAddress: swap.logistics?.deliveryAddress || null,
+          phoneNumber: swap.logistics?.phoneNumber || null,
+          status: "DONE",
+          lastUpdatedBy: actorId,
+          lastUpdatedAt: swap.logistics?.lastUpdatedAt || new Date(),
+        },
+      },
+      { upsert: true, session }
+    );
 
     await createNotification({
       userId: String(swap.requester),
@@ -290,6 +455,7 @@ async function completeSwap({ swapId, ownerId }) {
       meta: { swapId: String(swap._id) },
     });
 
+
     await session.commitTransaction();
     session.endSession();
 
@@ -305,6 +471,8 @@ module.exports = {
   createSwap,
   getIncoming,
   getOutgoing,
+  getByIdForViewer,
+  updateLogistics,
   acceptSwap,
   rejectSwap,
   completeSwap,
