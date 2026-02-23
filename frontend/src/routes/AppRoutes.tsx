@@ -31,7 +31,15 @@ import { ChatPage } from "../modules/Chat/ChatPage";
 import { UserProfilePage } from "../modules/User/UserProfile";
 import { getMe } from "../api/auth.api";
 
+
+import { getMe } from "../api/auth.api"; // ✅ add this
 import { Apparel } from "../types";
+import { ChatPage } from "../modules/Chat/ChatPage";
+import { WishlistHubPage } from "../pages/WishlistHubPage";
+import { SwapLogisticsPage } from "../pages/Delevery/SwapLogisticsPage";
+
+import { Apparel } from "../types";
+
 
 /* --------------------------------------------------
    Helpers
@@ -275,6 +283,7 @@ export default function AppRoutes() {
         }
       >
         {/* Items */}
+
         <Route
           path="/items"
           element={
@@ -286,7 +295,12 @@ export default function AppRoutes() {
           }
         />
 
+                        {/* ✅ Product details page */}
+        <Route path="/wishlist" element={<WishlistHubPage />} />
+
+
         {/* ✅ Product details */}
+
         <Route path="/items/:id" element={<ProductDetailsPage />} />
 
         {/* ✅ Chat */}
@@ -340,6 +354,7 @@ export default function AppRoutes() {
         <Route path="/swaps/incoming" element={<IncomingRequestsPage />} />
         <Route path="/swaps/outgoing" element={<MyRequestsPage />} />
         <Route path="/swaps/history" element={<HistoryPage />} />
+        <Route path="/swaps/:id/logistics" element={<SwapLogisticsPage />} />
 
         {/* Admin */}
         <Route
@@ -359,3 +374,7 @@ export default function AppRoutes() {
     </Routes>
   );
 }
+
+
+
+
