@@ -1,19 +1,32 @@
-name: CD
+name: Backend CD
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
 
 jobs:
-  deploy:
-    name: Deploy (Deploy Hooks)
+  detect-backend-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend_changed: ${{ steps.filter.outputs.backend }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if backend changed
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+
+  deploy-backend:
+    needs: detect-backend-changes
+    if: needs.detect-backend-changes.outputs.backend_changed == 'true'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger Backend Deploy Hook
-        if: ${{ secrets.BACKEND_DEPLOY_HOOK != '' }}
+      - name: Trigger Render Deploy Hook
         run: curl -X POST "${{ secrets.BACKEND_DEPLOY_HOOK }}"
-
-      - name: Trigger Frontend Deploy Hook
-        if: ${{ secrets.FRONTEND_DEPLOY_HOOK != '' }}
-        run: curl -X POST "${{ secrets.FRONTEND_DEPLOY_HOOK }}"

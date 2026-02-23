@@ -17,6 +17,7 @@ export interface SwapApi {
   createdAt: string;
   requester: { _id: string; name: string; email?: string };
   owner: { _id: string; name: string; email?: string };
+
   requestedItem: SwapApiItem;
   offeredItem: SwapApiItem;
   logistics?: {
@@ -31,6 +32,11 @@ export interface SwapApi {
     lastUpdatedBy?: { _id?: string; name?: string };
     lastUpdatedAt?: string;
   };
+
+
+  requestedItem: any; // populated Apparel
+  offeredItem: any;   // populated Apparel
+
 }
 
 function mapStatus(status: SwapApi["status"]): SwapRequest["status"] {
@@ -48,16 +54,30 @@ function mapStatus(status: SwapApi["status"]): SwapRequest["status"] {
   }
 }
 
+function pickImage(item: any): string | undefined {
+  return item?.images?.[0]?.url || item?.imageUrl || undefined;
+}
+
 export function mapSwapApiToUi(s: SwapApi): SwapRequest {
   return {
     id: s._id,
+
     requesterId: s.requester?._id || "",
     requesterName: s.requester?.name || "Unknown",
+
     ownerId: s.owner?._id || "",
     requestedItemId: s.requestedItem?._id || "",
     requestedItemName: s.requestedItem?.title || "Item",
+
     offeredItemId: s.offeredItem?._id || "",
     offeredItemName: s.offeredItem?.title || "Item",
+
+    requestedItemImageUrl: pickImage(s.requestedItem),
+
+    offeredItemId: s.offeredItem?._id || "",
+    offeredItemName: s.offeredItem?.title || "Item",
+    offeredItemImageUrl: pickImage(s.offeredItem),
+
     status: mapStatus(s.status),
     message: s.message || "",
     createdAt: s.createdAt,
@@ -119,4 +139,27 @@ export async function rejectSwap(id: string) {
 export async function completeSwap(id: string) {
   const res = await api.put(`/swaps/${id}/complete`);
   return res.data;
+}
+
+/**
+ * ✅ History:
+ * - First try backend: GET /swaps/history
+ * - If not available, fallback: merge incoming+outgoing and filter out "pending"
+ */
+export async function getSwapHistory(): Promise<SwapRequest[]> {
+  try {
+    const res = await api.get("/swaps/history");
+    const list: SwapApi[] = res.data?.data ?? [];
+    return list.map(mapSwapApiToUi);
+  } catch {
+    const [incoming, outgoing] = await Promise.all([getIncomingSwaps(), getOutgoingSwaps()]);
+    const merged = [...incoming, ...outgoing];
+
+    // unique by id
+    const map = new Map<string, SwapRequest>();
+    merged.forEach((x) => map.set(x.id, x));
+
+    // history = not pending
+    return Array.from(map.values()).filter((x) => x.status !== "pending");
+  }
 }

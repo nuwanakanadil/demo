@@ -20,7 +20,7 @@ export interface Apparel {
   size: string;
   condition: "New" | "Like New" | "Good" | "Fair";
   category: "Tops" | "Bottoms" | "Outerwear" | "Shoes" | "Accessories";
-  imageUrl: string; // UI uses single image
+  imageUrl: string;
   ownerId: string;
   ownerName: string;
   status: "available" | "swapped" | "pending";
@@ -28,24 +28,27 @@ export interface Apparel {
 
 export interface SwapRequest {
   id: string;
+
   requesterId: string;
   requesterName: string;
+
   ownerId: string;
+
   requestedItemId: string;
   requestedItemName: string;
+  requestedItemImageUrl?: string; // ✅ NEW
+
   offeredItemId: string;
   offeredItemName: string;
+  offeredItemImageUrl?: string; // ✅ NEW
 
-  // ✅ updated
-  status: "pending" | "accepted" | "rejected" | "completed" | "cancelled";
-
+  status: "pending" | "accepted" | "rejected" | "completed" | "cancelled"; // ✅ UPDATED
   message?: string;
   createdAt: string;
 }
 
 /* ================================
  * BACKEND / API TYPES
- * (MongoDB models)
  * ================================ */
 export type ApparelCategoryApi =
   | "TOP"
@@ -56,7 +59,12 @@ export type ApparelCategoryApi =
   | "ACCESSORY"
   | "OTHER";
 
-export type ApparelConditionApi = "NEW" | "LIKE_NEW" | "GOOD" | "FAIR" | "WORN";
+export type ApparelConditionApi =
+  | "NEW"
+  | "LIKE_NEW"
+  | "GOOD"
+  | "FAIR"
+  | "WORN";
 
 export interface ApparelApiImage {
   url: string;
@@ -76,7 +84,7 @@ export interface ApparelApi {
   category: ApparelCategoryApi;
   size: string;
   condition: ApparelConditionApi;
-  images: ApparelApiImage[]; // ✅ Cloudinary objects
+  images: ApparelApiImage[];
   owner: string | ApparelApiOwner;
   isAvailable: boolean;
   createdAt?: string;
@@ -89,7 +97,7 @@ export interface ApparelApi {
 const categoryFromApi: Record<ApparelCategoryApi, Apparel["category"]> = {
   TOP: "Tops",
   BOTTOM: "Bottoms",
-  DRESS: "Tops", // UI does not have Dress yet
+  DRESS: "Tops",
   OUTERWEAR: "Outerwear",
   SHOES: "Shoes",
   ACCESSORY: "Accessories",
@@ -101,12 +109,9 @@ const conditionFromApi: Record<ApparelConditionApi, Apparel["condition"]> = {
   LIKE_NEW: "Like New",
   GOOD: "Good",
   FAIR: "Fair",
-  WORN: "Fair", // UI fallback
+  WORN: "Fair",
 };
 
-/**
- * Convert backend ApparelApi → UI Apparel
- */
 export function mapApparelApiToUi(item: ApparelApi): Apparel {
   const ownerObj = typeof item.owner === "string" ? { _id: item.owner } : item.owner;
 
@@ -116,13 +121,9 @@ export function mapApparelApiToUi(item: ApparelApi): Apparel {
     size: item.size,
     condition: conditionFromApi[item.condition] || "Good",
     category: categoryFromApi[item.category] || "Tops",
-
-    // ✅ Cloudinary image object → url
     imageUrl: item.images?.[0]?.url || "",
-
     ownerId: ownerObj._id,
     ownerName: ownerObj.name || "Unknown",
-
     status: item.isAvailable ? "available" : "pending",
   };
 }

@@ -4,6 +4,8 @@ import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { listMyConversations, InboxConversation,markConversationRead } from "../../api/chat.api";
 import { updateMe, deleteMe } from "../../api/auth.api";
+import { MyItemsSection } from "./MyItemsSection";
+
 
 type UserRole = "user" | "admin";
 
@@ -516,6 +518,9 @@ export function UserProfilePage({ user }: { user: CurrentUser | null }) {
           </div>
         </div>
       )}
+       {/* ✅ My items card */}
+  <MyItemsSection />
     </div>
+    
   );
 }
