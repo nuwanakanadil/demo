@@ -12,6 +12,8 @@ router.post("/", requireVerified, ctrl.createSwap);
 // Lists (viewing is allowed once logged in)
 router.get("/incoming", ctrl.getIncoming);
 router.get("/outgoing", ctrl.getOutgoing);
+router.get("/:id/logistics", ctrl.getLogistics);
+router.put("/:id/logistics", requireVerified, ctrl.updateLogistics);
 
 // Actions (verified users only)
 router.put("/:id/accept", requireVerified, ctrl.acceptSwap);
