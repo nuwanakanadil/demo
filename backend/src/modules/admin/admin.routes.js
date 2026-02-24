@@ -5,6 +5,8 @@ const adminOnly = require("../../middlewares/admin.middleware");
 
 const router = express.Router();
 
+router.get("/dashboard", authMiddleware, adminOnly, adminController.getAdminDashboard);
+
 //user routes
 router.get("/users",authMiddleware,adminOnly, adminController.getAllUsers);
 router.patch("/users/:email",authMiddleware,adminOnly,adminController.suspendUser);

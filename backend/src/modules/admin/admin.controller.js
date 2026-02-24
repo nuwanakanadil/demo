@@ -410,6 +410,29 @@ export async function deleteReview(req, res, next) {
   }
 }
 
+//from admin dashboard
+export const getAdminDashboard = async (req, res, next) => {
+  try {
+    const totalUsers = await User.countDocuments({ role: "user" });
+    const totalItems = await Apparel.countDocuments();
+    const totalSwaps = await Swap.countDocuments();
+    const totalReviews = await OwnerReview.countDocuments();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalUsers,
+        totalItems,
+        totalSwaps,
+        totalReviews,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 // // ---------------- REPORTS ----------------
 // // Get all reports
 // export async function getAllReports(req, res, next) {
