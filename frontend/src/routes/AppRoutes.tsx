@@ -160,16 +160,18 @@ export default function AppRoutes() {
 
   const [selectedItem, setSelectedItem] = useState<Apparel | null>(null);
 
-  // ✅ Fetch user on refresh if token exists
   useEffect(() => {
     const loadMe = async () => {
-      if (!hasToken()) return;
+      if (!hasToken()) {
+        setLoading(false); // ✅ stop loading if no token
+        return;
+      }
 
       try {
         const res = await getMe();
         const u = res.user;
 
-        const nextUser: CurrentUser = {
+        const nextUser = {
           id: u.id,
           name: u.name,
           email: u.email,
@@ -181,17 +183,16 @@ export default function AppRoutes() {
         setUserRole(u.role);
         setCurrentUserId(u.id);
         setIsEmailVerified(u.isEmailVerified);
-        setLoading(false);
       } catch (err) {
-        // token invalid -> logout safely
         localStorage.removeItem("token");
         setUserRole(null);
         setCurrentUserId(null);
         setIsEmailVerified(false);
         setCurrentUser(null);
         setSelectedItem(null);
-        setLoading(false);
         navigate("/login", { replace: true });
+      } finally {
+        setLoading(false); // ✅ always stop loading
       }
     };
 
