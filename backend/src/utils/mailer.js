@@ -10,10 +10,14 @@ const mailSecure =
 const transporter = nodemailer.createTransport({
   host: mailHost,
   port: mailPort,
-  secure: mailSecure,
+  secure: false, // ✅ for 587
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
+  },
+  requireTLS: true, // ✅ IMPORTANT for Brevo on 587
+  tls: {
+    rejectUnauthorized: false, // ✅ helps in some hosted envs
   },
 });
 
