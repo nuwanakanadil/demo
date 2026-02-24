@@ -10,7 +10,11 @@ const chatRoutes = require("./modules/chat/chat.routes");
 const ownerReviewRoutes = require("./modules/review/ownerReview.route");
 const adminRoutes = require("./modules/admin/admin.routes");
 
-// ✅ CREATE APP FIRST
+const wishlistRoutes = require("./modules/wishlist/wishlist.routes");
+
+const notificationRoutes = require("./modules/notification/notification.routes");
+
+
 const app = express();
 
 const allowed = [
@@ -50,7 +54,12 @@ app.use("/api/chats", chatRoutes);
 app.use("/api", ownerReviewRoutes);
 app.use("/api/admin", adminRoutes);  
 
-// ✅ 404
+app.use("/api/wishlist", wishlistRoutes);
+
+app.use("/api/notifications", notificationRoutes);
+
+
+// ✅ 404 (optional but good)
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
 });

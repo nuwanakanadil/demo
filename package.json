@@ -9,4 +9,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC"
+  "devDependencies": {
+    "autoprefixer": "^10.4.24",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18"
+  }
 }

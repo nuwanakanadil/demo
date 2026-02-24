@@ -11,6 +11,7 @@ interface SwapRequestCardProps {
   onAccept?: (id: string) => void;
   onReject?: (id: string) => void;
   onComplete?: (id: string) => void;
+  onOpenLogistics?: (id: string) => void;
 }
 
 const fallbackImg = "https://placehold.co/120x120/png?text=Item";
@@ -36,9 +37,12 @@ export function SwapRequestCard({
   onAccept,
   onReject,
   onComplete,
+  onOpenLogistics,
 }: SwapRequestCardProps) {
   const isPending = request.status === "pending";
   const isAccepted = request.status === "accepted";
+  const isRejected = request.status === "rejected";
+  const isCompleted = request.status === "completed";
 
   const subtitle =
     type === "incoming"
@@ -128,7 +132,7 @@ export function SwapRequestCard({
         )}
       </CardContent>
 
-      {/* Actions */}
+      {/* Actions: Incoming + Pending */}
       {type === "incoming" && isPending && (
         <CardFooter className="bg-neutral-50 p-4 flex justify-end gap-2 border-t border-neutral-200">
           <Button
@@ -141,19 +145,56 @@ export function SwapRequestCard({
             Reject
           </Button>
 
-          <Button variant="primary" size="sm" onClick={() => onAccept?.(request.id)}>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => onAccept?.(request.id)}
+          >
             <CheckCircle className="h-4 w-4 mr-2" />
             Accept Swap
           </Button>
         </CardFooter>
       )}
 
+      {/* Actions: Incoming + Accepted */}
       {type === "incoming" && isAccepted && (
         <CardFooter className="bg-neutral-50 p-4 flex justify-end gap-2 border-t border-neutral-200">
-          <Button variant="primary" size="sm" onClick={() => onComplete?.(request.id)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenLogistics?.(request.id)}
+          >
+            Manage Logistics
+          </Button>
+
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => onComplete?.(request.id)}
+          >
             <Flag className="h-4 w-4 mr-2" />
             Complete Swap
           </Button>
+        </CardFooter>
+      )}
+
+      {/* Actions: Outgoing + Accepted/Completed */}
+      {(isAccepted || isCompleted) && type === "outgoing" && (
+        <CardFooter className="bg-gray-50 p-4 flex justify-end border-t border-gray-100">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenLogistics?.(request.id)}
+          >
+            View Logistics
+          </Button>
+        </CardFooter>
+      )}
+
+      {/* Actions: Incoming + Rejected */}
+      {type === "incoming" && isRejected && (
+        <CardFooter className="bg-gray-50 p-4 flex justify-end border-t border-gray-100">
+          <span className="text-sm text-gray-500">No action required</span>
         </CardFooter>
       )}
     </Card>
