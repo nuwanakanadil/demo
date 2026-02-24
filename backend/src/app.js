@@ -8,6 +8,7 @@ const apparelRoutes = require("./modules/apparel/apparel.routes");
 const uploadRoutes = require("./modules/upload/upload.routes");
 const chatRoutes = require("./modules/chat/chat.routes");
 const ownerReviewRoutes = require("./modules/review/ownerReview.route");
+const adminRoutes = require("./modules/admin/admin.routes");
 
 const wishlistRoutes = require("./modules/wishlist/wishlist.routes");
 
@@ -25,6 +26,7 @@ const isVercelPreview = (origin) =>
   origin?.startsWith("https://rewear-clothing-swap-platform-") &&
   origin.endsWith(".vercel.app");
 
+// ✅ Now you can use app
 app.use(
   cors({
     origin: (origin, cb) => {
@@ -35,6 +37,7 @@ app.use(
     credentials: true,
   })
 );
+
 app.options("*", cors());
 app.use(express.json());
 
@@ -42,13 +45,14 @@ app.get("/", (req, res) => {
   res.send("ReWear API is running 🚀");
 });
 
-// ✅ Routes FIRST
+// ✅ Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/swaps", swapRoutes);
 app.use("/api/items", apparelRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api", ownerReviewRoutes);
+app.use("/api/admin", adminRoutes);  
 
 app.use("/api/wishlist", wishlistRoutes);
 
@@ -64,3 +68,4 @@ app.use((req, res) => {
 app.use(errorMiddleware);
 
 module.exports = app;
+

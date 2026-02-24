@@ -27,7 +27,9 @@ import { AdminDashboard } from "../modules/admin/AdminDashboard";
 
 import { ProductDetailsPage } from "../modules/apparel/ProductDetailsPage";
 
+
 import { UserProfilePage } from "../modules/User/UserProfile";
+
 
 
 import { getMe } from "../api/auth.api"; // ✅ add this
@@ -35,6 +37,15 @@ import { Apparel } from "../types";
 import { ChatPage } from "../modules/Chat/ChatPage";
 import { WishlistHubPage } from "../pages/WishlistHubPage";
 import { SwapLogisticsPage } from "../pages/Delevery/SwapLogisticsPage";
+
+
+
+
+import AdminLayout from "../modules/admin/AdminLayout";
+import AdminUsers from "../modules/admin/AdminUsers"; 
+import AdminItems from "../modules/admin/AdminItems"; 
+import AdminSwaps from "../modules/admin/AdminSwaps"; 
+import AdminReviews from "../modules/admin/AdminReviews";
 
 
 /* --------------------------------------------------
@@ -149,6 +160,7 @@ export default function AppRoutes() {
   const navigate = useNavigate();
 
   const [userRole, setUserRole] = useState<"user" | "admin" | null>(null);
+  const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isEmailVerified, setIsEmailVerified] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
@@ -176,6 +188,8 @@ export default function AppRoutes() {
         setUserRole(u.role);
         setCurrentUserId(u.id);
         setIsEmailVerified(u.isEmailVerified);
+        setLoading(false);
+
       } catch (err) {
         // token invalid -> logout safely
         localStorage.removeItem("token");
@@ -184,6 +198,7 @@ export default function AppRoutes() {
         setIsEmailVerified(false);
         setCurrentUser(null);
         setSelectedItem(null);
+        setLoading(false);
         navigate("/login", { replace: true });
       }
     };
@@ -241,6 +256,10 @@ export default function AppRoutes() {
   const handleEditItem = (itemId: string) => {
     navigate(`/items/${itemId}/edit`);
   };
+
+  if (loading) {
+  return <div className="p-6">Loading...</div>;
+}
 
   return (
     <Routes>
@@ -352,23 +371,34 @@ export default function AppRoutes() {
         <Route path="/swaps/history" element={<HistoryPage />} />
         <Route path="/swaps/:id/logistics" element={<SwapLogisticsPage />} />
 
-        {/* Admin */}
-        <Route
-          path="/admin"
-          element={
-            userRole === "admin" ? (
-              <AdminDashboard />
-            ) : (
-              <Navigate to="/items" replace />
-            )
-          }
-        />
+              {/* Admin */}
+      <Route
+        path="/admin/*"
+        element={
+           
+          userRole === null ? (
+  <div>Loading...</div>
+) : userRole === "admin" ? (
+  <AdminLayout />
+) : (
+  <Navigate to="/items" replace />
+)  
+        }
+        
+      >
+       <Route index element={<AdminDashboard />} />
+       <Route path="users" element={<AdminUsers />} />
+       <Route path="items" element={<AdminItems />} />
+       <Route path="swaps" element={<AdminSwaps />} />
+       <Route path="reviews" element={<AdminReviews />} />
       </Route>
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/items" replace />} />
-    </Routes>
-  );
+    </Route>   {/* ✅ THIS CLOSES THE PROTECTED ROUTE */}
+
+    {/* Fallback */}
+    <Route path="*" element={<Navigate to="/items" replace />} />
+  </Routes>
+);
 }
 
 
