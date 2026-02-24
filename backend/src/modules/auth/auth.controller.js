@@ -14,7 +14,7 @@ function createEmailVerifyToken(user) {
   const hash = crypto.createHash("sha256").update(token).digest("hex");
 
   user.emailVerifyTokenHash = hash;
-  user.emailVerifyExpires = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+  user.emailVerifyExpires = new Date(Date.now() + 30 * 60 * 1000);
   return token;
 }
 
@@ -44,7 +44,6 @@ exports.register = async (req, res, next) => {
       role: role || "user",
     });
 
-    // 🔐 create verification token
     const verifyToken = createEmailVerifyToken(user);
     await user.save({ validateBeforeSave: false });
 
@@ -53,7 +52,6 @@ exports.register = async (req, res, next) => {
       message: "Registration successful. Please verify your email to log in.",
     });
 
-    // 📧 send verify email in background
     setImmediate(async () => {
       try {
         const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verifyToken}`;
@@ -89,17 +87,12 @@ exports.login = async (req, res, next) => {
     }
 
     const ok = await user.comparePassword(password);
-    if (!ok) {
-      const err = new Error("Invalid credentials");
-      err.statusCode = 401;
-      throw err;
-    }
+    if (!ok) throw Object.assign(new Error("Invalid credentials"), { statusCode: 401 });
 
-    if (!user.isEmailVerified) {
-      const err = new Error("Please verify your email before logging in.");
-      err.statusCode = 403;
-      throw err;
-    }
+    if (!user.isEmailVerified) throw Object.assign(new Error("Please verify your email before logging in."), { statusCode: 403 });
+
+    if (user.accountStatus === "suspended") throw Object.assign(new Error("Your account has been suspended."), { statusCode: 403 });
+    if (user.accountStatus === "banned") throw Object.assign(new Error("Your account has been banned."), { statusCode: 403 });
 
     const token = signToken(user._id);
 
@@ -128,33 +121,16 @@ exports.me = async (req, res) => {
 exports.verifyEmail = async (req, res, next) => {
   try {
     const token = req.query.token;
-    if (!token) {
-      const err = new Error("Token required");
-      err.statusCode = 400;
-      throw err;
-    }
+    if (!token) throw Object.assign(new Error("Token required"), { statusCode: 400 });
 
     const hash = crypto.createHash("sha256").update(token).digest("hex");
+    const user = await User.findOne({ emailVerifyTokenHash: hash, emailVerifyExpires: { $gt: new Date() } });
 
-    const user = await User.findOne({
-      emailVerifyTokenHash: hash,
-      emailVerifyExpires: { $gt: new Date() },
-    });
-
-    // if not found, check if already verified
     if (!user) {
       const verified = await User.findOne({ isEmailVerified: true });
+      if (verified) return res.json({ success: true, message: "Email already verified. You can log in." });
 
-      if (verified) {
-        return res.json({
-          success: true,
-          message: "Email already verified. You can log in.",
-        });
-      }
-
-      const err = new Error("Invalid or expired verification link");
-      err.statusCode = 400;
-      throw err;
+      throw Object.assign(new Error("Invalid or expired verification link"), { statusCode: 400 });
     }
 
     user.isEmailVerified = true;
@@ -162,14 +138,9 @@ exports.verifyEmail = async (req, res, next) => {
     user.emailVerifyExpires = undefined;
     await user.save({ validateBeforeSave: false });
 
-    // optional: send welcome email AFTER verification
     setImmediate(async () => {
       try {
-        await sendWelcomeEmail(
-          user.email,
-          user.name,
-          process.env.FRONTEND_URL
-        );
+        await sendWelcomeEmail(user.email, user.name, process.env.FRONTEND_URL);
       } catch (e) {
         console.error("Welcome email failed:", e.message);
       }
