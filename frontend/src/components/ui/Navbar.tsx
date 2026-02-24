@@ -1,10 +1,8 @@
-
-import React, { useEffect, useState } from "react";
-import { Menu, X, LogOut, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Menu, X, LogOut, Plus, User } from "lucide-react";
 import { getWishlistItems, WISHLIST_COUNT_EVENT } from "../../api/wishlist.api";
 import { Button } from "./Button";
 import { NotificationBell } from "../NotificationBell";
-
 
 interface NavbarProps {
   currentPage: string; // pathname like "/items"
@@ -66,9 +64,15 @@ export function Navbar({
       }
     };
 
-    window.addEventListener(WISHLIST_COUNT_EVENT, onWishlistCountChanged as EventListener);
+    window.addEventListener(
+      WISHLIST_COUNT_EVENT,
+      onWishlistCountChanged as EventListener,
+    );
     return () => {
-      window.removeEventListener(WISHLIST_COUNT_EVENT, onWishlistCountChanged as EventListener);
+      window.removeEventListener(
+        WISHLIST_COUNT_EVENT,
+        onWishlistCountChanged as EventListener,
+      );
     };
   }, []);
 
