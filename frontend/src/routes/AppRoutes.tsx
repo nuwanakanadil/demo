@@ -26,10 +26,8 @@ import { HistoryPage } from "../modules/swap/HistoryPage";
 import { AdminDashboard } from "../modules/admin/AdminDashboard";
 
 import { ProductDetailsPage } from "../modules/apparel/ProductDetailsPage";
-import { ChatPage } from "../modules/Chat/ChatPage";
 
 import { UserProfilePage } from "../modules/User/UserProfile";
-import { getMe } from "../api/auth.api";
 
 
 import { getMe } from "../api/auth.api"; // ✅ add this
@@ -37,8 +35,6 @@ import { Apparel } from "../types";
 import { ChatPage } from "../modules/Chat/ChatPage";
 import { WishlistHubPage } from "../pages/WishlistHubPage";
 import { SwapLogisticsPage } from "../pages/Delevery/SwapLogisticsPage";
-
-import { Apparel } from "../types";
 
 
 /* --------------------------------------------------
