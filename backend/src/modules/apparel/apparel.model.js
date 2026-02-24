@@ -29,6 +29,8 @@ const apparelSchema = new mongoose.Schema(
     owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
     isAvailable: { type: Boolean, default: true },
+
+    isBlocked: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

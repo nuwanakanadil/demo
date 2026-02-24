@@ -1,4 +1,14 @@
 {
+  "name": "demo",
+  "version": "1.0.0",
+  "description": "A full-stack apparel swapping platform built with **React**, **Node.js**, and **MongoDB** to promote sustainable fashion by enabling users to list, browse, and swap unused clothing items.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
   "devDependencies": {
     "autoprefixer": "^10.4.24",
     "postcss": "^8.5.6",
