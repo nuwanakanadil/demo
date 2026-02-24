@@ -48,7 +48,7 @@ app.use("/api/items", apparelRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api", ownerReviewRoutes);
-app.use("/api/admin", adminRoutes);  // ✅ MOVE IT HERE
+app.use("/api/admin", adminRoutes);  
 
 // ✅ 404
 app.use((req, res) => {
