@@ -1,11 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Menu, X, LogOut, Plus } from "lucide-react";
-import { Button } from "./Button";
 import { getWishlistItems, WISHLIST_COUNT_EVENT } from "../../api/wishlist.api";
-
-import React, { useState } from "react";
-import { Menu, X, LogOut, Plus, User } from "lucide-react";
 import { Button } from "./Button";
 import { NotificationBell } from "../NotificationBell";
 
