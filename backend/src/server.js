@@ -54,6 +54,10 @@ io.on("connection", (socket) => {
     socket.join(conversationId);
   });
 
+  transporter.verify((err) => {
+    console.log("SMTP verify:", err ? err.message : "✅ SMTP ready");
+  });
+
   // ✅ chat message emit
   socket.on("send_message", async ({ conversationId, messageId }) => {
     try {
