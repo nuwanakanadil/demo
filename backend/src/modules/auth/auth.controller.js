@@ -22,12 +22,27 @@ function createEmailVerifyToken(user) {
 exports.register = async (req, res, next) => {
   try {
     const { name, email, password, role } = req.body;
-    if (!name || !email || !password) throw Object.assign(new Error("name, email, password are required"), { statusCode: 400 });
+    const normalizedEmail = email?.trim().toLowerCase();
 
-    const exists = await User.findOne({ email });
-    if (exists) throw Object.assign(new Error("Email already registered"), { statusCode: 400 });
+    if (!name || !normalizedEmail || !password) {
+      const err = new Error("name, email, password are required");
+      err.statusCode = 400;
+      throw err;
+    }
 
-    const user = await User.create({ name, email, password, role: role || "user" });
+    const exists = await User.findOne({ email: normalizedEmail });
+    if (exists) {
+      const err = new Error("Email already registered");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const user = await User.create({
+      name,
+      email: normalizedEmail,
+      password,
+      role: role || "user",
+    });
 
     const verifyToken = createEmailVerifyToken(user);
     await user.save({ validateBeforeSave: false });
@@ -54,10 +69,22 @@ exports.register = async (req, res, next) => {
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) throw Object.assign(new Error("email and password are required"), { statusCode: 400 });
+    const normalizedEmail = email?.trim().toLowerCase();
 
-    const user = await User.findOne({ email }).select("+password");
-    if (!user) throw Object.assign(new Error("Invalid credentials"), { statusCode: 401 });
+    if (!normalizedEmail || !password) {
+      const err = new Error("email and password are required");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const user = await User.findOne({ email: normalizedEmail }).select(
+      "+password"
+    );
+    if (!user) {
+      const err = new Error("Invalid credentials");
+      err.statusCode = 401;
+      throw err;
+    }
 
     const ok = await user.comparePassword(password);
     if (!ok) throw Object.assign(new Error("Invalid credentials"), { statusCode: 401 });
