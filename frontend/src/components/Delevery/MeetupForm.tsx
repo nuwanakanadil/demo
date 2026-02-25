@@ -123,7 +123,7 @@ export function MeetupForm({ onSave, initialData, disabled = false }: MeetupForm
           </div>
 
           {formatPreview() &&
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="bg-green-50 border border-green-700 rounded-lg p-4">
               <p className="text-sm text-gray-600 mb-1">Meetup scheduled:</p>
               <p className="text-base font-medium text-green-700">
                 {formatPreview()}
