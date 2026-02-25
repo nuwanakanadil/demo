@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/Card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/Card";
 import { getAdminDashboard } from "../../api/admin.api";
 
 import {
@@ -35,7 +40,11 @@ export function AdminDashboard() {
   }
 
   if (!data) {
-    return <p className="p-6 text-red-500">Failed to load data</p>;
+    return (
+      <p className="p-6 text-red-500 font-semibold">
+        Failed to load dashboard data
+      </p>
+    );
   }
 
   // Convert API data → chart format
@@ -47,34 +56,45 @@ export function AdminDashboard() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+    <div className="p-6 space-y-8">
+      <h1 className="text-3xl font-bold text-green-700">
+        Admin Dashboard
+      </h1>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {chartData.map((item) => (
-          <Card key={item.name}>
-            <CardContent className="p-4 text-center">
-              <p className="text-gray-500">{item.name}</p>
-              <h2 className="text-2xl font-bold">{item.value}</h2>
+          <Card
+            key={item.name}
+            className="shadow-md border-l-4 border-green-600"
+          >
+            <CardContent className="p-6 text-center">
+              <p className="text-gray-500 text-sm uppercase tracking-wide">
+                {item.name}
+              </p>
+              <h2 className="text-3xl font-bold text-green-600 mt-2">
+                {item.value}
+              </h2>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Chart */}
-      <Card>
+      {/* Chart Section */}
+      <Card className="shadow-md">
         <CardHeader>
-          <CardTitle>Platform Overview</CardTitle>
+          <CardTitle className="text-green-700 text-xl font-semibold">
+            Platform Overview
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-80">
+          <div className="w-full h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="value" fill="#4f46e5" />
+                <Bar dataKey="value" fill="#16a34a" />
               </BarChart>
             </ResponsiveContainer>
           </div>
