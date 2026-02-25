@@ -18,7 +18,7 @@ export function MethodSelector({ selected, onChange, disabled = false }: MethodS
         {selected === 'MEETUP' &&
         <motion.div
           layoutId="activeTab"
-          className="absolute inset-0 bg-green-600 rounded-lg shadow-md"
+          className="absolute inset-0 bg-green-700 rounded-lg shadow-md"
           transition={{
             type: 'spring',
             bounce: 0.2,
@@ -41,7 +41,7 @@ export function MethodSelector({ selected, onChange, disabled = false }: MethodS
         {selected === 'DELIVERY' &&
         <motion.div
           layoutId="activeTab"
-          className="absolute inset-0 bg-green-600 rounded-lg shadow-md"
+          className="absolute inset-0 bg-green-700 rounded-lg shadow-md"
           transition={{
             type: 'spring',
             bounce: 0.2,
