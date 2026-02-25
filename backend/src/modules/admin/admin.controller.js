@@ -181,6 +181,7 @@ export async function getAllItems(req, res, next) {
 
 
 
+
 //Block / Unblock item
 export async function updateItemStatus(req, res, next) {
   try {
@@ -321,8 +322,71 @@ export async function getAllSwaps(req, res, next) {
 
 
 
-// // ---------------- REVIEWS ----------------
-// Get all reviews
+// // // ---------------- REVIEWS ----------------
+// // Get all reviews
+// export async function getAllReviews(req, res, next) {
+//   try {
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     const skip = (page - 1) * limit;
+
+//     const filter = {};
+
+//     // Filter by reviewee email
+//     if (req.query.revieweeEmail) {
+//       const reviewee = await User.findOne({
+//         email: req.query.reviewerEmail.toLowerCase().trim()
+//       });
+
+//       if (!reviewer) {
+//         return res.status(404).json({
+//           success: false,
+//           message: "Reviewee not found"
+//         });
+//       }
+
+//       filter.revieweeId = reviewee._id;
+//     }
+
+//       if (req.query.reviewerEmail) {
+//       const reviewer = await User.findOne({
+//         email: req.query.reviewerEmail.toLowerCase().trim()
+//       });
+
+//       if (!reviewer) {
+//         return res.status(404).json({
+//           success: false,
+//           message: "Reviewee not found"
+//         });
+//       }
+
+//       filter.reviewerId = reviewer._id;
+//     }
+
+//     const totalReviews = await OwnerReview.countDocuments(filter);
+
+//     const reviews = await OwnerReview.find(filter)
+//       .select("rating comment revieweeId createdAt") // only needed fields
+//       .populate("revieweeId", "name email") // show email
+//       .populate("reviwerId","name email")
+//       .sort({ createdAt: -1 })
+//       .skip(skip)
+//       .limit(limit);
+
+//     res.status(200).json({
+//       success: true,
+//       page,
+//       totalPages: Math.ceil(totalReviews / limit),
+//       totalReviews,
+//       count: reviews.length,
+//       data: reviews
+//     });
+
+//   } catch (err) {
+//     next(err);
+//   }
+// }
+
 export async function getAllReviews(req, res, next) {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -347,15 +411,16 @@ export async function getAllReviews(req, res, next) {
       filter.revieweeId = reviewee._id;
     }
 
-      if (req.query.reviewrEmail) {
+    // Filter by reviewer email
+    if (req.query.reviewerEmail) {
       const reviewer = await User.findOne({
-        email: req.query.revieweeEmail.toLowerCase().trim()
+        email: req.query.reviewerEmail.toLowerCase().trim()
       });
 
       if (!reviewer) {
         return res.status(404).json({
           success: false,
-          message: "Reviewee not found"
+          message: "Reviewer not found"
         });
       }
 
@@ -365,9 +430,8 @@ export async function getAllReviews(req, res, next) {
     const totalReviews = await OwnerReview.countDocuments(filter);
 
     const reviews = await OwnerReview.find(filter)
-      .select("rating comment revieweeId createdAt") // only needed fields
-      .populate("revieweeId", "name email") // show email
-      .populate("reviwerId","name email")
+      .populate("revieweeId", "name email")
+      .populate("reviewerId", "name email")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -385,6 +449,7 @@ export async function getAllReviews(req, res, next) {
     next(err);
   }
 }
+
 
 
 

@@ -19,6 +19,7 @@ const app = express();
 
 const allowed = [
   "https://rewear-clothing-swap-platform.vercel.app",
+  "http://localhost:5174",
   "http://localhost:5173",
 ];
 
