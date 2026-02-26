@@ -16,6 +16,9 @@ interface User {
 export default function AdminUsers() {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [confirmAction, setConfirmAction] = useState<
+    "suspend" | "activate" | null
+  >(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
@@ -39,7 +42,6 @@ export default function AdminUsers() {
 
   // ---------------- ACTIONS ----------------
   const suspendUser = async (email: string) => {
-    if (!window.confirm("Suspend this user?")) return;
     await api.patch(`/admin/users/${email}`);
     fetchUsers();
     setSelectedUser(null);
@@ -75,7 +77,7 @@ export default function AdminUsers() {
         onChange={(e) => setSearch(e.target.value)}
       />
 
-      {/* ================= TABLE ================= */}
+      {/* ================= USERS TABLE ================= */}
       <Card>
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-sm">
@@ -101,13 +103,9 @@ export default function AdminUsers() {
                     key={user._id}
                     className="border-t hover:bg-gray-50 transition"
                   >
-                    <td className="p-4 font-medium">
-                      {user.name}
-                    </td>
+                    <td className="p-4 font-medium">{user.name}</td>
 
-                    <td className="p-4">
-                      {user.email}
-                    </td>
+                    <td className="p-4">{user.email}</td>
 
                     <td className="p-4">
                       <Badge
@@ -128,30 +126,6 @@ export default function AdminUsers() {
                       >
                         View
                       </Button>
-
-                      {user.accountStatus !== "suspended" && (
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          onClick={() =>
-                            suspendUser(user.email)
-                          }
-                        >
-                          Suspend
-                        </Button>
-                      )}
-
-                      {user.accountStatus === "suspended" && (
-                        <Button
-                          size="sm"
-                          variant="primary"
-                          onClick={() =>
-                            activateUser(user.email)
-                          }
-                        >
-                          Activate
-                        </Button>
-                      )}
                     </td>
                   </tr>
                 ))
@@ -161,41 +135,78 @@ export default function AdminUsers() {
         </CardContent>
       </Card>
 
-      {/* ================= MODAL POPUP ================= */}
+      {/* ================= USER DETAILS MODAL ================= */}
       {selectedUser && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50">
 
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8 space-y-6">
 
-            <h2 className="text-xl font-bold">
-              User Details
-            </h2>
+            {/* Header */}
+            <div className="flex items-center gap-4">
 
-            <div><strong>Name:</strong> {selectedUser.name}</div>
-            <div><strong>Email:</strong> {selectedUser.email}</div>
-            <div><strong>Role:</strong> {selectedUser.role}</div>
-            <div><strong>Status:</strong> {selectedUser.accountStatus}</div>
+              <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold shadow-lg">
+                {selectedUser.name.charAt(0).toUpperCase()}
+              </div>
 
-            <div className="flex gap-3 pt-4">
-              {selectedUser.accountStatus !== "suspended" && (
+              <div>
+                <h2 className="text-2xl font-semibold">
+                  {selectedUser.name}
+                </h2>
+                <p className="text-gray-500">
+                  {selectedUser.email}
+                </p>
+              </div>
+
+            </div>
+
+            {/* Info Section */}
+            <div className="space-y-3 text-sm">
+
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-500">Role</span>
+                <span className="font-medium">
+                  {selectedUser.role}
+                </span>
+              </div>
+
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-500">Account Status</span>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    selectedUser.accountStatus === "suspended"
+                      ? "bg-red-100 text-red-600"
+                      : "bg-green-100 text-green-600"
+                  }`}
+                >
+                  {selectedUser.accountStatus}
+                </span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-500">Joined</span>
+                <span className="font-medium">
+                  {new Date(selectedUser.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end gap-3 pt-4">
+
+              {selectedUser.accountStatus !== "suspended" ? (
                 <Button
                   variant="danger"
-                  onClick={() =>
-                    suspendUser(selectedUser.email)
-                  }
+                  onClick={() => setConfirmAction("suspend")}
                 >
-                  Suspend
+                  Suspend Account
                 </Button>
-              )}
-
-              {selectedUser.accountStatus === "suspended" && (
+              ) : (
                 <Button
                   variant="primary"
-                  onClick={() =>
-                    activateUser(selectedUser.email)
-                  }
+                  onClick={() => setConfirmAction("activate")}
                 >
-                  Activate
+                  Activate Account
                 </Button>
               )}
 
@@ -205,6 +216,52 @@ export default function AdminUsers() {
               >
                 Close
               </Button>
+
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ================= CONFIRMATION MODAL ================= */}
+      {confirmAction && selectedUser && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
+
+            <h3 className="text-lg font-semibold text-center">
+              Confirm Action
+            </h3>
+
+            <p className="text-center text-gray-600 text-sm">
+              {confirmAction === "suspend"
+                ? "This user will be suspended and cannot access the system."
+                : "This user account will be reactivated."}
+            </p>
+
+            <div className="flex justify-center gap-4 pt-4">
+
+              <Button
+                variant="ghost"
+                onClick={() => setConfirmAction(null)}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                variant={confirmAction === "suspend" ? "danger" : "primary"}
+                onClick={async () => {
+                  if (confirmAction === "suspend") {
+                    await suspendUser(selectedUser.email);
+                  } else {
+                    await activateUser(selectedUser.email);
+                  }
+                  setConfirmAction(null);
+                }}
+              >
+                Confirm
+              </Button>
+
             </div>
 
           </div>

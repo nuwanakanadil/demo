@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "../../components/ui/Card";
+import { Button } from "../../components/ui/Button";
 import { getAdminDashboard } from "../../api/admin.api";
 
 import {
@@ -20,34 +21,43 @@ export function AdminDashboard() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await getAdminDashboard();
-        setData(res.data);
-      } catch (err) {
-        console.error("Failed to load dashboard", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+  // 🔄 Fetch function (Reusable)
+  const fetchDashboard = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await getAdminDashboard();
+      setData(res.data);
+    } catch (err) {
+      console.error("Failed to load dashboard", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
+
   if (loading) {
-    return <p className="p-6">Loading dashboard...</p>;
+    return (
+      <div className="p-6">
+        <p className="text-lg font-medium text-gray-600">
+          Loading dashboard...
+        </p>
+      </div>
+    );
   }
 
   if (!data) {
     return (
-      <p className="p-6 text-red-500 font-semibold">
-        Failed to load dashboard data
-      </p>
+      <div className="p-6">
+        <p className="text-red-500 font-semibold">
+          Failed to load dashboard data
+        </p>
+      </div>
     );
   }
 
-  // Convert API data → chart format
   const chartData = [
     { name: "Users", value: data.totalUsers },
     { name: "Items", value: data.totalItems },
@@ -57,22 +67,30 @@ export function AdminDashboard() {
 
   return (
     <div className="p-6 space-y-8">
-      <h1 className="text-3xl font-bold text-green-700">
-        Admin Dashboard
-      </h1>
+
+      {/* Header Section */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-green-700">
+          Admin Dashboard
+        </h1>
+
+        <Button onClick={fetchDashboard}>
+          Refresh
+        </Button>
+      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {chartData.map((item) => (
           <Card
             key={item.name}
-            className="shadow-md border-l-4 border-green-600"
+            className="shadow-lg hover:shadow-xl transition duration-300 border-t-4 border-green-600"
           >
             <CardContent className="p-6 text-center">
               <p className="text-gray-500 text-sm uppercase tracking-wide">
                 {item.name}
               </p>
-              <h2 className="text-3xl font-bold text-green-600 mt-2">
+              <h2 className="text-4xl font-bold text-green-600 mt-3">
                 {item.value}
               </h2>
             </CardContent>
@@ -81,7 +99,7 @@ export function AdminDashboard() {
       </div>
 
       {/* Chart Section */}
-      <Card className="shadow-md">
+      <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-green-700 text-xl font-semibold">
             Platform Overview
@@ -94,12 +112,13 @@ export function AdminDashboard() {
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="value" fill="#16a34a" />
+                <Bar dataKey="value" fill="#16a34a" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>
+
     </div>
   );
 }

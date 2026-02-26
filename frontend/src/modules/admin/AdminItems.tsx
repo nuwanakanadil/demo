@@ -13,6 +13,10 @@ interface Item {
   condition: string;
   isBlocked: boolean;
   createdAt: string;
+  images: {
+    url: string;
+    public_id: string;
+  }[];
 }
 
 export default function AdminItems() {
@@ -55,15 +59,13 @@ export default function AdminItems() {
 
   // ---------------- FILTER ----------------
   const filteredItems = items.filter((item) =>
-    item.title.toLowerCase().includes(search.toLowerCase())
+    item.title.toLowerCase().includes(search.toLowerCase()),
   );
 
-  if (loading)
-    return <p className="text-center mt-10">Loading items...</p>;
+  if (loading) return <p className="text-center mt-10">Loading items...</p>;
 
   return (
     <div className="p-6 space-y-6">
-
       <h1 className="text-2xl font-bold">Manage Items</h1>
 
       {/* ================= SEARCH ================= */}
@@ -101,13 +103,9 @@ export default function AdminItems() {
                     key={item._id}
                     className="border-t hover:bg-gray-50 transition"
                   >
-                    <td className="p-4 font-medium">
-                      {item.title}
-                    </td>
+                    <td className="p-4 font-medium">{item.title}</td>
 
-                    <td className="p-4">
-                      {item.category}
-                    </td>
+                    <td className="p-4">{item.category}</td>
 
                     <td className="p-4">
                       <Badge
@@ -122,10 +120,7 @@ export default function AdminItems() {
                     </td>
 
                     <td className="p-4 flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => setSelectedItem(item)}
-                      >
+                      <Button size="sm" onClick={() => setSelectedItem(item)}>
                         View
                       </Button>
 
@@ -150,18 +145,37 @@ export default function AdminItems() {
       {/* ================= MODAL POPUP ================= */}
       {selectedItem && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+            <h2 className="text-xl font-bold">Item Details</h2>
 
-            <h2 className="text-xl font-bold">
-              Item Details
-            </h2>
+            <div>
+              <strong>Title:</strong> {selectedItem.title}
+            </div>
+            <div>
+              <strong>Description:</strong> {selectedItem.description}
+            </div>
+            <div>
+              <strong>Category:</strong> {selectedItem.category}
+            </div>
+            <div>
+              <strong>Size:</strong> {selectedItem.size}
+            </div>
+            <div>
+              <strong>Condition:</strong> {selectedItem.condition}
+            </div>
+            {selectedItem.images?.length > 0 && (
+              <div className="grid grid-cols-2 gap-3">
+                {selectedItem.images.map((img, index) => (
+                  <img
+                    key={index}
+                    src={img.url}
+                    alt="item"
+                    className="w-full h-40 object-cover rounded"
+                  />
+                ))}
+              </div>
+            )}
 
-            <div><strong>Title:</strong> {selectedItem.title}</div>
-            <div><strong>Description:</strong> {selectedItem.description}</div>
-            <div><strong>Category:</strong> {selectedItem.category}</div>
-            <div><strong>Size:</strong> {selectedItem.size}</div>
-            <div><strong>Condition:</strong> {selectedItem.condition}</div>
             <div>
               <strong>Status:</strong>{" "}
               {selectedItem.isBlocked ? "Blocked" : "Active"}
@@ -171,27 +185,19 @@ export default function AdminItems() {
               <Button
                 variant={selectedItem.isBlocked ? "primary" : "danger"}
                 onClick={() =>
-                  toggleBlockItem(
-                    selectedItem._id,
-                    selectedItem.isBlocked
-                  )
+                  toggleBlockItem(selectedItem._id, selectedItem.isBlocked)
                 }
               >
                 {selectedItem.isBlocked ? "Unblock" : "Block"}
               </Button>
 
-              <Button
-                variant="ghost"
-                onClick={() => setSelectedItem(null)}
-              >
+              <Button variant="ghost" onClick={() => setSelectedItem(null)}>
                 Close
               </Button>
             </div>
-
           </div>
         </div>
       )}
-
     </div>
   );
 }

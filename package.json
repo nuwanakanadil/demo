@@ -8,7 +8,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
   "devDependencies": {
     "autoprefixer": "^10.4.24",
     "postcss": "^8.5.6",

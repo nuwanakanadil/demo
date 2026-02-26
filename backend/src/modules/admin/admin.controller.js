@@ -53,9 +53,52 @@ export const getAllUsers = async (req, res, next) => {
   }
 };
 
+//create user
+export const createUser = async (req, res, next) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, email and password are required",
+      });
+    }
+
+    const existingUser = await User.findOne({
+      email: email.toLowerCase().trim(),
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "User already exists",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await User.create({
+      name,
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      role: role || "user",
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "User created successfully",
+      data: newUser,
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
 
 
 
+//suspend user
 
 export const suspendUser = async (req, res, next) => {
   try {
