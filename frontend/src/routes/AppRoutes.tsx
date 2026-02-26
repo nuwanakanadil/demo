@@ -160,7 +160,7 @@ export default function AppRoutes() {
   const navigate = useNavigate();
 
   const [userRole, setUserRole] = useState<"user" | "admin" | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isEmailVerified, setIsEmailVerified] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
