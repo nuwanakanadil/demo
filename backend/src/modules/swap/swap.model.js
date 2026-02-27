@@ -15,6 +15,22 @@ const swapSchema = new mongoose.Schema(
       enum: ["PENDING", "ACCEPTED", "REJECTED", "COMPLETED", "CANCELLED"],
       default: "PENDING",
     },
+    logistics: {
+      method: { type: String, enum: ["MEETUP", "DELIVERY"] },
+      meetupLocation: { type: String, trim: true, maxlength: 200 },
+      meetupAt: { type: Date },
+      deliveryOption: { type: String, trim: true, maxlength: 80 },
+      trackingRef: { type: String, trim: true, maxlength: 120 },
+      deliveryAddress: { type: String, trim: true, maxlength: 300 },
+      phoneNumber: { type: String, trim: true, maxlength: 30 },
+      status: {
+        type: String,
+        enum: ["PENDING", "SCHEDULED", "IN_TRANSIT", "DONE"],
+        default: "PENDING",
+      },
+      lastUpdatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      lastUpdatedAt: { type: Date },
+    },
   },
   { timestamps: true }
 );

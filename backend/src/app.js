@@ -8,6 +8,12 @@ const apparelRoutes = require("./modules/apparel/apparel.routes");
 const uploadRoutes = require("./modules/upload/upload.routes");
 const chatRoutes = require("./modules/chat/chat.routes");
 const ownerReviewRoutes = require("./modules/review/ownerReview.route");
+const adminRoutes = require("./modules/admin/admin.routes");
+
+const wishlistRoutes = require("./modules/wishlist/wishlist.routes");
+
+const notificationRoutes = require("./modules/notification/notification.routes");
+
 
 const app = express();
 
@@ -20,30 +26,36 @@ const isVercelPreview = (origin) =>
   origin?.startsWith("https://rewear-clothing-swap-platform-") &&
   origin.endsWith(".vercel.app");
 
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      if (!origin) return cb(null, true);
-      if (allowed.includes(origin) || isVercelPreview(origin)) return cb(null, true);
-      return cb(new Error("CORS blocked: " + origin));
-    },
-    credentials: true,
-  })
-);
-app.options("*", cors());
+const corsOptions = {
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true);
+    if (allowed.includes(origin) || isVercelPreview(origin)) return cb(null, true);
+    return cb(new Error("CORS blocked: " + origin));
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(express.json());
 
 app.get("/", (req, res) => {
   res.send("ReWear API is running 🚀");
 });
 
-// ✅ Routes FIRST
+// ✅ Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/swaps", swapRoutes);
 app.use("/api/items", apparelRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api", ownerReviewRoutes);
+app.use("/api/admin", adminRoutes);  
+
+app.use("/api/wishlist", wishlistRoutes);
+
+app.use("/api/notifications", notificationRoutes);
+
 
 // ✅ 404 (optional but good)
 app.use((req, res) => {
@@ -54,3 +66,4 @@ app.use((req, res) => {
 app.use(errorMiddleware);
 
 module.exports = app;
+

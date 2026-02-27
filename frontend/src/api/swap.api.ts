@@ -1,27 +1,58 @@
 import api from "./axios";
 import { SwapRequest } from "../types";
 
+export type LogisticsMethod = "MEETUP" | "DELIVERY";
+export type LogisticsStatus = "PENDING" | "SCHEDULED" | "IN_TRANSIT" | "DONE";
+
+export interface SwapApiItem {
+  _id: string;
+  title?: string;
+  images?: Array<{ url?: string }>;
+}
+
 export interface SwapApi {
   _id: string;
   status: "PENDING" | "ACCEPTED" | "REJECTED" | "COMPLETED" | "CANCELLED";
   message?: string;
   createdAt: string;
-
   requester: { _id: string; name: string; email?: string };
   owner: { _id: string; name: string; email?: string };
 
-  requestedItem: any; // populated Apparel
-  offeredItem: any;   // populated Apparel
+  requestedItem: SwapApiItem;
+  offeredItem: SwapApiItem;
+  logistics?: {
+    method?: LogisticsMethod;
+    meetupLocation?: string;
+    meetupAt?: string;
+    deliveryOption?: string;
+    trackingRef?: string;
+    deliveryAddress?: string;
+    phoneNumber?: string;
+    status?: LogisticsStatus;
+    lastUpdatedBy?: { _id?: string; name?: string };
+    lastUpdatedAt?: string;
+  };
 }
 
-// Map backend status -> UI status
 function mapStatus(status: SwapApi["status"]): SwapRequest["status"] {
-  if (status === "ACCEPTED") return "accepted";
-  if (status === "REJECTED") return "rejected";
-  return "pending";
+  switch (status) {
+    case "ACCEPTED":
+      return "accepted";
+    case "REJECTED":
+      return "rejected";
+    case "COMPLETED":
+      return "completed";
+    case "CANCELLED":
+      return "cancelled";
+    default:
+      return "pending";
+  }
 }
 
-// Map backend Swap -> UI SwapRequest
+function pickImage(item: any): string | undefined {
+  return item?.images?.[0]?.url || item?.imageUrl || undefined;
+}
+
 export function mapSwapApiToUi(s: SwapApi): SwapRequest {
   return {
     id: s._id,
@@ -30,15 +61,17 @@ export function mapSwapApiToUi(s: SwapApi): SwapRequest {
     requesterName: s.requester?.name || "Unknown",
 
     ownerId: s.owner?._id || "",
-
     requestedItemId: s.requestedItem?._id || "",
     requestedItemName: s.requestedItem?.title || "Item",
 
     offeredItemId: s.offeredItem?._id || "",
     offeredItemName: s.offeredItem?.title || "Item",
 
-    status: mapStatus(s.status),
+    requestedItemImageUrl: pickImage(s.requestedItem),
 
+    offeredItemImageUrl: pickImage(s.offeredItem),
+
+    status: mapStatus(s.status),
     message: s.message || "",
     createdAt: s.createdAt,
   };
@@ -53,17 +86,37 @@ export async function createSwapRequest(payload: {
   return res.data;
 }
 
-// ✅ Return UI-ready array
 export async function getIncomingSwaps(): Promise<SwapRequest[]> {
   const res = await api.get("/swaps/incoming");
   const list: SwapApi[] = res.data?.data ?? [];
   return list.map(mapSwapApiToUi);
 }
 
-// ✅ Return UI-ready array
-export async function getOutgoingSwaps(): Promise<{ success: boolean; data: SwapRequest[] }> {
+export async function getOutgoingSwaps(): Promise<SwapRequest[]> {
   const res = await api.get("/swaps/outgoing");
-  return res.data;
+  const list: SwapApi[] = res.data?.data ?? [];
+  return list.map(mapSwapApiToUi);
+}
+
+export async function getSwapLogistics(swapId: string): Promise<SwapApi> {
+  const res = await api.get(`/swaps/${swapId}/logistics`);
+  return res.data?.data;
+}
+
+export async function saveSwapLogistics(
+  swapId: string,
+  payload:
+    | { method: "MEETUP"; meetupLocation: string; meetupAt: string }
+    | {
+        method: "DELIVERY";
+        deliveryOption: string;
+        trackingRef?: string;
+        deliveryAddress?: string;
+        phoneNumber?: string;
+      }
+) {
+  const res = await api.put(`/swaps/${swapId}/logistics`, payload);
+  return res.data?.data as SwapApi;
 }
 
 export async function acceptSwap(id: string) {
@@ -79,4 +132,27 @@ export async function rejectSwap(id: string) {
 export async function completeSwap(id: string) {
   const res = await api.put(`/swaps/${id}/complete`);
   return res.data;
+}
+
+/**
+ * ✅ History:
+ * - First try backend: GET /swaps/history
+ * - If not available, fallback: merge incoming+outgoing and filter out "pending"
+ */
+export async function getSwapHistory(): Promise<SwapRequest[]> {
+  try {
+    const res = await api.get("/swaps/history");
+    const list: SwapApi[] = res.data?.data ?? [];
+    return list.map(mapSwapApiToUi);
+  } catch {
+    const [incoming, outgoing] = await Promise.all([getIncomingSwaps(), getOutgoingSwaps()]);
+    const merged = [...incoming, ...outgoing];
+
+    // unique by id
+    const map = new Map<string, SwapRequest>();
+    merged.forEach((x) => map.set(x.id, x));
+
+    // history = not pending
+    return Array.from(map.values()).filter((x) => x.status !== "pending");
+  }
 }

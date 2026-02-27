@@ -25,13 +25,21 @@ import { MyRequestsPage } from "../modules/swap/MyRequestsPage";
 import { HistoryPage } from "../modules/swap/HistoryPage";
 import { AdminDashboard } from "../modules/admin/AdminDashboard";
 
-import {ProductDetailsPage} from "../modules/apparel/ProductDetailsPage";
+import { ProductDetailsPage } from "../modules/apparel/ProductDetailsPage";
 
+import { UserProfilePage } from "../modules/User/UserProfile";
 
-import { UserProfilePage } from "../modules/User/UserProfile"; // ✅ add this
 import { getMe } from "../api/auth.api"; // ✅ add this
 import { Apparel } from "../types";
 import { ChatPage } from "../modules/Chat/ChatPage";
+import { WishlistHubPage } from "../pages/WishlistHubPage";
+import { SwapLogisticsPage } from "../pages/Delevery/SwapLogisticsPage";
+
+import AdminLayout from "../modules/admin/AdminLayout";
+import AdminUsers from "../modules/admin/AdminUsers";
+import AdminItems from "../modules/admin/AdminItems";
+import AdminSwaps from "../modules/admin/AdminSwaps";
+import AdminReviews from "../modules/admin/AdminReviews";
 
 
 /* --------------------------------------------------
@@ -47,9 +55,7 @@ function hasToken() {
 -------------------------------------------------- */
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  if (!hasToken()) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!hasToken()) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
@@ -60,9 +66,7 @@ function RequireVerified({
   isVerified: boolean;
   children: React.ReactNode;
 }) {
-  if (!isVerified) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!isVerified) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
@@ -142,7 +146,6 @@ type CurrentUser = {
   isEmailVerified: boolean;
 };
 
-
 /* --------------------------------------------------
    Main Routes
 -------------------------------------------------- */
@@ -151,55 +154,70 @@ export default function AppRoutes() {
   const navigate = useNavigate();
 
   const [userRole, setUserRole] = useState<"user" | "admin" | null>(null);
+  const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isEmailVerified, setIsEmailVerified] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
   const [selectedItem, setSelectedItem] = useState<Apparel | null>(null);
 
-  
-  // ✅ Fetch user on refresh if token exists
   useEffect(() => {
     const loadMe = async () => {
-      if (!hasToken()) return;
+      if (!hasToken()) {
+        setLoading(false); // ✅ stop loading if no token
+        return;
+      }
 
       try {
         const res = await getMe();
         const u = res.user;
 
-        setCurrentUser({
+        const nextUser = {
           id: u.id,
           name: u.name,
           email: u.email,
           role: u.role,
           isEmailVerified: u.isEmailVerified,
-        });
+        };
 
+        setCurrentUser(nextUser);
         setUserRole(u.role);
         setCurrentUserId(u.id);
         setIsEmailVerified(u.isEmailVerified);
       } catch (err) {
-        // token invalid -> logout safely
         localStorage.removeItem("token");
         setUserRole(null);
         setCurrentUserId(null);
         setIsEmailVerified(false);
         setCurrentUser(null);
+        setSelectedItem(null);
         navigate("/login", { replace: true });
+      } finally {
+        setLoading(false); // ✅ always stop loading
       }
     };
 
     loadMe();
   }, [navigate]);
 
+  // ✅ updated signature to accept verification status
   const handleLogin = (
     role: "user" | "admin",
     userId: string,
-    verified: boolean
+    verified: boolean,
   ) => {
     setUserRole(role);
     setCurrentUserId(userId);
     setIsEmailVerified(verified);
+
+    // ✅ build minimal user object (name/email will be loaded by getMe on refresh)
+    setCurrentUser((prev) => ({
+      id: userId,
+      name: prev?.name || "User",
+      email: prev?.email || "",
+      role,
+      isEmailVerified: verified,
+    }));
 
     if (!verified) {
       navigate("/login", { replace: true });
@@ -214,6 +232,7 @@ export default function AppRoutes() {
     setUserRole(null);
     setCurrentUserId(null);
     setIsEmailVerified(false);
+    setCurrentUser(null);
     setSelectedItem(null);
     navigate("/login", { replace: true });
   };
@@ -232,11 +251,14 @@ export default function AppRoutes() {
     navigate(`/items/${itemId}/edit`);
   };
 
+  if (loading) {
+    return <div className="p-6">Loading...</div>;
+  }
+
   return (
     <Routes>
       {/* Default */}
       <Route path="/" element={<Navigate to="/items" replace />} />
-
       {/* Public */}
       <Route
         path="/login"
@@ -247,7 +269,6 @@ export default function AppRoutes() {
           />
         }
       />
-
       <Route
         path="/register"
         element={
@@ -257,9 +278,7 @@ export default function AppRoutes() {
           />
         }
       />
-
       <Route path="/verify-email" element={<VerifyEmailPage />} />
-
       {/* Protected */}
       <Route
         element={
@@ -269,6 +288,7 @@ export default function AppRoutes() {
         }
       >
         {/* Items */}
+
         <Route
           path="/items"
           element={
@@ -279,11 +299,24 @@ export default function AppRoutes() {
             />
           }
         />
-                        {/* ✅ Product details page */}
+
+        {/* ✅ Product details page */}
+        <Route path="/wishlist" element={<WishlistHubPage />} />
+
+        {/* ✅ Product details */}
+
         <Route path="/items/:id" element={<ProductDetailsPage />} />
+
+        {/* ✅ Chat */}
         <Route path="/chat/:itemId/:ownerId" element={<ChatPage />} />
 
+        {/* ✅ Profile (NEW) */}
+        <Route
+          path="/profile"
+          element={<UserProfilePage user={currentUser} />}
+        />
 
+        {/* Verified-only actions */}
         <Route
           path="/items/new"
           element={
@@ -325,20 +358,29 @@ export default function AppRoutes() {
         <Route path="/swaps/incoming" element={<IncomingRequestsPage />} />
         <Route path="/swaps/outgoing" element={<MyRequestsPage />} />
         <Route path="/swaps/history" element={<HistoryPage />} />
+        <Route path="/swaps/:id/logistics" element={<SwapLogisticsPage />} />
 
         {/* Admin */}
         <Route
-          path="/admin"
+          path="/admin/*"
           element={
-            userRole === "admin" ? (
-              <AdminDashboard />
+            userRole === null ? (
+              <div>Loading...</div>
+            ) : userRole === "admin" ? (
+              <AdminLayout />
             ) : (
               <Navigate to="/items" replace />
             )
           }
-        />
-      </Route>
-
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="items" element={<AdminItems />} />
+          <Route path="swaps" element={<AdminSwaps />} />
+          <Route path="reviews" element={<AdminReviews />} />
+        </Route>
+      </Route>{" "}
+      {/* ✅ THIS CLOSES THE PROTECTED ROUTE */}
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/items" replace />} />
     </Routes>
