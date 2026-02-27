@@ -59,3 +59,14 @@ export async function deleteReview(id: string) {
   const res = await api.delete(`/admin/reviews/${id}`);
   return res.data;
 }
+
+export async function createUserByAdmin(data: {
+  name: string;
+  email: string;
+  password: string;
+  role: string;
+}) {
+  const res = await api.post("/admin/users", data);
+;
+  return res.data;
+}
