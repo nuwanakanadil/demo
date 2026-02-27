@@ -1,8 +1,9 @@
 import axios from "axios";
 
 const api = axios.create({
-  // Use explicit env when provided, otherwise route through Vite dev proxy.
-  baseURL: import.meta.env.VITE_API_URL || "/api",
+  baseURL:
+    import.meta.env.VITE_API_URL || "http://localhost:5000/api", // ✅ fallback added
+  withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {

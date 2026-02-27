@@ -1,21 +1,4 @@
-const nodemailer = require("nodemailer");
-
-const mailHost = process.env.MAIL_HOST || "smtp.gmail.com";
-const mailPort = Number(process.env.MAIL_PORT || 465);
-const mailSecure =
-  typeof process.env.MAIL_SECURE === "string"
-    ? process.env.MAIL_SECURE === "true"
-    : mailPort === 465;
-
-const transporter = nodemailer.createTransport({
-  host: mailHost,
-  port: mailPort,
-  secure: mailSecure,
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  },
-});
+const axios = require("axios");
 
 function wrapHtml({ title, subtitle, bodyHtml, ctaText, ctaUrl }) {
   return `
@@ -52,29 +35,40 @@ function wrapHtml({ title, subtitle, bodyHtml, ctaText, ctaUrl }) {
 
 async function sendEmail({ to, subject, text, html }) {
   try {
-    if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-      throw new Error("MAIL_USER and MAIL_PASS must be set");
+    if (!process.env.BREVO_API_KEY) {
+      throw new Error("BREVO_API_KEY must be set");
     }
 
-    const resp = await transporter.sendMail({
-      from: process.env.MAIL_FROM || `ReWear <${process.env.MAIL_USER}>`,
-      to,
-      subject,
-      text,
-      html,
-    });
+    const fromEmail = process.env.MAIL_FROM;
+    if (!fromEmail) {
+      throw new Error("MAIL_FROM must be set (and verified in Brevo)");
+    }
 
-    console.log("Email sent:", {
-      to,
+    const payload = {
+      sender: { email: fromEmail, name: "ReWear" },
+      to: [{ email: to }],
       subject,
-      messageId: resp.messageId,
-      accepted: resp.accepted,
-      rejected: resp.rejected,
-    });
+      textContent: text,
+      htmlContent: html,
+    };
 
-    return resp;
+    const resp = await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      payload,
+      {
+        headers: {
+          "api-key": process.env.BREVO_API_KEY,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        timeout: 15000,
+      }
+    );
+
+    console.log("Email sent (Brevo API):", { to, subject, id: resp.data?.messageId });
+    return resp.data;
   } catch (err) {
-    console.error("Email send failed:", err?.message || err);
+    console.error("Email send failed (Brevo API):", err.response?.data || err.message);
     throw err;
   }
 }
