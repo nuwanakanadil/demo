@@ -36,6 +36,7 @@ function createEmailVerifyToken(user) {
 exports.register = async (req, res, next) => {
   try {
     const { name, email, password, role } = req.body;
+    const normalizedEmail = email?.trim().toLowerCase();
 
     // Validate required fields
     if (!name || !normalizedEmail || !password) {
@@ -55,7 +56,7 @@ exports.register = async (req, res, next) => {
     // Create new user
     const user = await User.create({
       name,
-      email,
+      email: normalizedEmail,
       password,
       role: role || "user",
     });
@@ -90,6 +91,7 @@ exports.register = async (req, res, next) => {
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = email?.trim().toLowerCase();
 
     // Validate input
     if (!normalizedEmail || !password) {

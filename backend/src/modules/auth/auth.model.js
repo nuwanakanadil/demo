@@ -106,7 +106,6 @@ userSchema.pre("save", async function () {
    - Returns true/false
 ================================================== */
 userSchema.methods.comparePassword = async function (candidatePassword) {
-  // password is selected in controller? If not, ensure select("+password") when needed
   return bcrypt.compare(candidatePassword, this.password);
 };
 
