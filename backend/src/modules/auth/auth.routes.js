@@ -10,6 +10,8 @@ router.post("/register", ctrl.register);
 router.post("/login", ctrl.login);
 router.get("/verify-email", ctrl.verifyEmail);
 router.get("/me", auth, ctrl.me);
+router.patch("/me", auth, ctrl.updateMe); 
+router.delete("/me", auth, ctrl.deleteMe);
 
 // Admin routes for user management
 // router.patch("/users/:id/suspend", adminAuth, adminCtrl.suspendUser);
