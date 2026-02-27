@@ -8,8 +8,22 @@ interface Swap {
   _id: string;
   requester: { name: string; email: string };
   owner: { name: string; email: string };
-  requestedItem: { title: string };
-  offeredItem: { title: string };
+  requestedItem: {
+    title: string;
+    description: string;
+    images: {
+      url: string;
+      public_id: string;
+    }[];
+  };
+  offeredItem: {
+    title: string;
+    description: string;
+    images: {
+      url: string;
+      public_id: string;
+    }[];
+  };
   status: string;
   message: string;
   createdAt: string;
@@ -21,7 +35,7 @@ export default function AdminSwaps() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  // ---------------- FETCH ----------------
+  // ---------------- FETCH SWAPS ----------------
   const fetchSwaps = async () => {
     try {
       setLoading(true);
@@ -55,10 +69,9 @@ export default function AdminSwaps() {
 
   return (
     <div className="p-6 space-y-6">
-
       <h1 className="text-2xl font-bold">Swap Management</h1>
 
-      {/* ================= SEARCH ================= */}
+      {/* SEARCH */}
       <input
         type="text"
         placeholder="Search by email..."
@@ -67,7 +80,7 @@ export default function AdminSwaps() {
         onChange={(e) => setSearch(e.target.value)}
       />
 
-      {/* ================= TABLE ================= */}
+      {/* TABLE */}
       <Card>
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-sm">
@@ -107,10 +120,10 @@ export default function AdminSwaps() {
                           swap.status === "PENDING"
                             ? "bg-yellow-500 text-white"
                             : swap.status === "ACCEPTED"
-                            ? "bg-green-500 text-white"
+                            ? "bg-green-600 text-white"
                             : swap.status === "REJECTED"
-                            ? "bg-red-500 text-white"
-                            : "bg-blue-500 text-white"
+                            ? "bg-red-600 text-white"
+                            : "bg-blue-600 text-white"
                         }
                       >
                         {swap.status}
@@ -133,52 +146,113 @@ export default function AdminSwaps() {
         </CardContent>
       </Card>
 
-      {/* ================= MODAL POPUP ================= */}
+      {/* MODAL */}
       {selectedSwap && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50">
 
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 space-y-4">
+          <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl p-8 space-y-6">
 
-            <h2 className="text-xl font-bold">
-              Swap Details
-            </h2>
+            {/* HEADER */}
+            <div className="flex justify-between items-center border-b pb-4">
+              <h2 className="text-2xl font-bold">
+                Swap Details
+              </h2>
 
-            <div>
-              <strong>Status:</strong> {selectedSwap.status}
-            </div>
-
-            <div>
-              <strong>Requester:</strong>{" "}
-              {selectedSwap.requester?.name} (
-              {selectedSwap.requester?.email})
-            </div>
-
-            <div>
-              <strong>Owner:</strong>{" "}
-              {selectedSwap.owner?.name} (
-              {selectedSwap.owner?.email})
-            </div>
-
-            <div>
-              <strong>Requested Item:</strong>{" "}
-              {selectedSwap.requestedItem?.title}
-            </div>
-
-            <div>
-              <strong>Offered Item:</strong>{" "}
-              {selectedSwap.offeredItem?.title}
-            </div>
-
-            <div>
-              <strong>Message:</strong>{" "}
-              {selectedSwap.message || "No message"}
-            </div>
-
-            <div className="flex justify-end pt-4">
-              <Button
-                variant="ghost"
-                onClick={() => setSelectedSwap(null)}
+              <Badge
+                className={
+                  selectedSwap.status === "PENDING"
+                    ? "bg-yellow-500 text-white px-3 py-1"
+                    : selectedSwap.status === "ACCEPTED"
+                    ? "bg-green-600 text-white px-3 py-1"
+                    : selectedSwap.status === "REJECTED"
+                    ? "bg-red-600 text-white px-3 py-1"
+                    : "bg-blue-600 text-white px-3 py-1"
+                }
               >
+                {selectedSwap.status}
+              </Badge>
+            </div>
+
+            {/* USERS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-gray-50 p-4 rounded-xl">
+                <h3 className="font-semibold mb-2">
+                  Requester
+                </h3>
+                <p><strong>Name:</strong> {selectedSwap.requester.name}</p>
+                <p><strong>Email:</strong> {selectedSwap.requester.email}</p>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-xl">
+                <h3 className="font-semibold mb-2">
+                  Owner
+                </h3>
+                <p><strong>Name:</strong> {selectedSwap.owner.name}</p>
+                <p><strong>Email:</strong> {selectedSwap.owner.email}</p>
+              </div>
+            </div>
+
+            {/* ITEMS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+              {/* Requested */}
+              <div className="border rounded-xl p-4 space-y-3">
+                <h3 className="font-semibold">
+                  Requested Item
+                </h3>
+
+                <p><strong>Title:</strong> {selectedSwap.requestedItem?.title}</p>
+                <p><strong>Description:</strong> {selectedSwap.requestedItem?.description}</p>
+
+                {selectedSwap.requestedItem?.images?.length > 0 && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedSwap.requestedItem.images.map((img, index) => (
+                      <img
+                        key={index}
+                        src={img.url}
+                        alt="requested"
+                        className="w-full h-40 object-cover rounded-lg"
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Offered */}
+              <div className="border rounded-xl p-4 space-y-3">
+                <h3 className="font-semibold">
+                  Offered Item
+                </h3>
+
+                <p><strong>Title:</strong> {selectedSwap.offeredItem?.title}</p>
+                <p><strong>Description:</strong> {selectedSwap.offeredItem?.description}</p>
+
+                {selectedSwap.offeredItem?.images?.length > 0 && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedSwap.offeredItem.images.map((img, index) => (
+                      <img
+                        key={index}
+                        src={img.url}
+                        alt="offered"
+                        className="w-full h-40 object-cover rounded-lg"
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* MESSAGE */}
+            <div className="bg-gray-50 p-4 rounded-xl">
+              <h3 className="font-semibold mb-2">
+                Message
+              </h3>
+              <p>{selectedSwap.message || "No message provided"}</p>
+            </div>
+
+            {/* FOOTER */}
+            <div className="flex justify-end pt-4 border-t">
+              <Button onClick={() => setSelectedSwap(null)}>
                 Close
               </Button>
             </div>
@@ -186,7 +260,6 @@ export default function AdminSwaps() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
