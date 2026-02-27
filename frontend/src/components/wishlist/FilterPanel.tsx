@@ -21,7 +21,7 @@ export function FilterPanel({ filters, onFilterChange, onSaveSearch }: FilterPan
         <h2 className="text-lg font-bold text-gray-900">Filters</h2>
         <button
           onClick={onSaveSearch}
-          className="flex items-center gap-2 rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+          className="flex items-center gap-2 rounded-lg bg-green-700 px-3 py-1.5 text-sm text-white transition-colors hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-500"
         >
           <SaveIcon className="h-4 w-4" />
           Save Search
@@ -124,7 +124,7 @@ export function FilterPanel({ filters, onFilterChange, onSaveSearch }: FilterPan
               dateTo: '',
             })
           }
-          className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+          className="w-full rounded-lg border border-green-800 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-green-600"
         >
           Clear All Filters
         </button>

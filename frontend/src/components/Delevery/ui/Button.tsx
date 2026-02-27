@@ -18,7 +18,7 @@ export function Button({
   'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white disabled:opacity-50 disabled:cursor-not-allowed';
   const variantStyles = {
     primary:
-    'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500 shadow-lg shadow-green-500/20',
+    'bg-green-800 text-white hover:bg-green-900 focus:ring-green-500 shadow-lg shadow-green-500/20',
     secondary:
     'bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 focus:ring-gray-400'
   };
