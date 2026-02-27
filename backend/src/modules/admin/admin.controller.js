@@ -3,8 +3,7 @@ import User from "../auth/auth.model.js";
 import OwnerReview from "../review/ownerReview.model.js";
 import deleteFromCloudinary from "../../utils/cloudinaryDelete.js";
 import Swap from "../swap/swap.model.js";
-
-
+import bcrypt from "bcryptjs";
 // ---------------- USERS ----------------
 export const getAllUsers = async (req, res, next) => {
   try {
@@ -54,49 +53,43 @@ export const getAllUsers = async (req, res, next) => {
 };
 
 //create user
-export const createUser = async (req, res, next) => {
+
+export const createUserByAdmin = async (req, res, next) => {
   try {
     const { name, email, password, role } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Name, email and password are required",
-      });
-    }
-
-    const existingUser = await User.findOne({
-      email: email.toLowerCase().trim(),
-    });
-
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: "User already exists",
+        message: "User already exists"
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-    const newUser = await User.create({
+    const newUser = new User({
       name,
-      email: email.toLowerCase().trim(),
+      email,
       password: hashedPassword,
       role: role || "user",
+      isVerified: true,   
+      accountStatus: "active"
     });
+
+    await newUser.save();
 
     res.status(201).json({
       success: true,
-      message: "User created successfully",
-      data: newUser,
+      message: "User created successfully by admin",
+      data: newUser
     });
 
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    next(error);
   }
 };
-
-
 
 //suspend user
 
@@ -131,7 +124,7 @@ export const suspendUser = async (req, res, next) => {
   }
 };
 
-
+//active user
 export const activeUser = async (req, res, next) => {
   try {
     const user = await User.findOneAndUpdate(
@@ -365,72 +358,6 @@ export async function getAllSwaps(req, res, next) {
   }
 }
 
-
-
-// // // ---------------- REVIEWS ----------------
-// // Get all reviews
-// export async function getAllReviews(req, res, next) {
-//   try {
-//     const page = parseInt(req.query.page) || 1;
-//     const limit = parseInt(req.query.limit) || 10;
-//     const skip = (page - 1) * limit;
-
-//     const filter = {};
-
-//     // Filter by reviewee email
-//     if (req.query.revieweeEmail) {
-//       const reviewee = await User.findOne({
-//         email: req.query.reviewerEmail.toLowerCase().trim()
-//       });
-
-//       if (!reviewer) {
-//         return res.status(404).json({
-//           success: false,
-//           message: "Reviewee not found"
-//         });
-//       }
-
-//       filter.revieweeId = reviewee._id;
-//     }
-
-//       if (req.query.reviewerEmail) {
-//       const reviewer = await User.findOne({
-//         email: req.query.reviewerEmail.toLowerCase().trim()
-//       });
-
-//       if (!reviewer) {
-//         return res.status(404).json({
-//           success: false,
-//           message: "Reviewee not found"
-//         });
-//       }
-
-//       filter.reviewerId = reviewer._id;
-//     }
-
-//     const totalReviews = await OwnerReview.countDocuments(filter);
-
-//     const reviews = await OwnerReview.find(filter)
-//       .select("rating comment revieweeId createdAt") // only needed fields
-//       .populate("revieweeId", "name email") // show email
-//       .populate("reviwerId","name email")
-//       .sort({ createdAt: -1 })
-//       .skip(skip)
-//       .limit(limit);
-
-//     res.status(200).json({
-//       success: true,
-//       page,
-//       totalPages: Math.ceil(totalReviews / limit),
-//       totalReviews,
-//       count: reviews.length,
-//       data: reviews
-//     });
-
-//   } catch (err) {
-//     next(err);
-//   }
-// }
 
 export async function getAllReviews(req, res, next) {
   try {
