@@ -11,6 +11,8 @@ router.get("/dashboard", authMiddleware, adminOnly, adminController.getAdminDash
 router.get("/users",authMiddleware,adminOnly, adminController.getAllUsers);
 router.patch("/users/:email",authMiddleware,adminOnly,adminController.suspendUser);
 router.patch("/users/active/:email",authMiddleware,adminOnly,adminController.activeUser);
+router.post("/users", authMiddleware, adminOnly, adminController.createUserByAdmin);
+
 
 // Items
 router.get("/items",authMiddleware,adminOnly, adminController.getAllItems);
