@@ -1,22 +1,84 @@
 const mongoose = require("mongoose");
 
+/* ==================================================
+   OWNER REVIEW SCHEMA
+   - Stores reviews written ABOUT a user (owner)
+   - Linked to:
+       • reviewee (owner being reviewed)
+       • reviewer (who wrote it)
+       • item (context of the review)
+================================================== */
 const OwnerReviewSchema = new mongoose.Schema(
   {
-    revieweeId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // ✅ owner being reviewed
-    reviewerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // ✅ who wrote review
+    /* ---------------- REVIEW TARGET ---------------- */
 
-    // optional context (nice to show "review from swap of item X")
-    itemId: { type: mongoose.Schema.Types.ObjectId, ref: "Apparel", required: true },
+    // The owner being reviewed
+    revieweeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
 
-    rating: { type: Number, required: true, min: 1, max: 5 },
-    comment: { type: String, required: true, trim: true, maxlength: 1000 },
+    /* ---------------- REVIEW AUTHOR ---------------- */
 
+    // The user who wrote the review
+    reviewerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    /* ---------------- CONTEXT ITEM ---------------- */
+
+    // Item related to this review
+    // Helps display:
+    // "Review from swap of item X"
+    itemId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Apparel",
+      required: true,
+    },
+
+    /* ---------------- RATING DATA ---------------- */
+
+    // Rating score (1–5 stars)
+    rating: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 5,
+    },
+
+    // Written review (max 1000 characters)
+    comment: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 1000,
+    },
   },
-  { timestamps: true }
+  {
+    // Automatically adds:
+    // createdAt
+    // updatedAt
+    timestamps: true,
+  }
 );
 
-// ✅ One review per reviewer per owner per item (prevents duplicates)
-OwnerReviewSchema.index({ revieweeId: 1, reviewerId: 1, itemId: 1 }, { unique: true });
+/* ==================================================
+   UNIQUE CONSTRAINT
+   - Prevents duplicate reviews
+   - Ensures:
+       One reviewer can review
+       One owner
+       For one specific item
+   - If posted again → controller upsert updates instead
+================================================== */
+OwnerReviewSchema.index(
+  { revieweeId: 1, reviewerId: 1, itemId: 1 },
+  { unique: true }
+);
 
 const OwnerReview = mongoose.model("OwnerReview", OwnerReviewSchema);
+
 module.exports = OwnerReview;
