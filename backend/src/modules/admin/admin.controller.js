@@ -3,8 +3,7 @@ import User from "../auth/auth.model.js";
 import OwnerReview from "../review/ownerReview.model.js";
 import deleteFromCloudinary from "../../utils/cloudinaryDelete.js";
 import Swap from "../swap/swap.model.js";
-
-
+import bcrypt from "bcryptjs";
 // ---------------- USERS ----------------
 export const getAllUsers = async (req, res, next) => {
   try {
@@ -53,9 +52,46 @@ export const getAllUsers = async (req, res, next) => {
   }
 };
 
+//create user
 
+export const createUserByAdmin = async (req, res, next) => {
+  try {
+    const { name, email, password, role } = req.body;
 
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "User already exists"
+      });
+    }
 
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newUser = new User({
+      name,
+      email,
+      password: hashedPassword,
+      role: role || "user",
+      isVerified: true,   
+      accountStatus: "active"
+    });
+
+    await newUser.save();
+
+    res.status(201).json({
+      success: true,
+      message: "User created successfully by admin",
+      data: newUser
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+//suspend user
 
 export const suspendUser = async (req, res, next) => {
   try {
@@ -88,7 +124,7 @@ export const suspendUser = async (req, res, next) => {
   }
 };
 
-
+//active user
 export const activeUser = async (req, res, next) => {
   try {
     const user = await User.findOneAndUpdate(
@@ -177,6 +213,7 @@ export async function getAllItems(req, res, next) {
     next(err);
   }
 }
+
 
 
 
@@ -301,6 +338,8 @@ export async function getAllSwaps(req, res, next) {
     const swaps = await Swap.find(filter)
       .populate("requester", "name email")
       .populate("owner", "name email")
+      .populate("requestedItem")
+      .populate("offeredItem")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -320,9 +359,6 @@ export async function getAllSwaps(req, res, next) {
 }
 
 
-
-// // ---------------- REVIEWS ----------------
-// Get all reviews
 export async function getAllReviews(req, res, next) {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -347,15 +383,16 @@ export async function getAllReviews(req, res, next) {
       filter.revieweeId = reviewee._id;
     }
 
-      if (req.query.reviewrEmail) {
+    // Filter by reviewer email
+    if (req.query.reviewerEmail) {
       const reviewer = await User.findOne({
-        email: req.query.revieweeEmail.toLowerCase().trim()
+        email: req.query.reviewerEmail.toLowerCase().trim()
       });
 
       if (!reviewer) {
         return res.status(404).json({
           success: false,
-          message: "Reviewee not found"
+          message: "Reviewer not found"
         });
       }
 
@@ -365,9 +402,8 @@ export async function getAllReviews(req, res, next) {
     const totalReviews = await OwnerReview.countDocuments(filter);
 
     const reviews = await OwnerReview.find(filter)
-      .select("rating comment revieweeId createdAt") // only needed fields
-      .populate("revieweeId", "name email") // show email
-      .populate("reviwerId","name email")
+      .populate("revieweeId", "name email")
+      .populate("reviewerId", "name email")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -385,6 +421,7 @@ export async function getAllReviews(req, res, next) {
     next(err);
   }
 }
+
 
 
 
