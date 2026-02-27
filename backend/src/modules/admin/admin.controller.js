@@ -345,6 +345,8 @@ export async function getAllSwaps(req, res, next) {
     const swaps = await Swap.find(filter)
       .populate("requester", "name email")
       .populate("owner", "name email")
+      .populate("requestedItem")
+      .populate("offeredItem")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
