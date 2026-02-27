@@ -1,17 +1,30 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/Card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/Card";
 import { ArrowLeft, ImagePlus } from "lucide-react";
 import api from "../../api/axios";
 import { updateItemWithImages } from "../../api/apparel.api";
 
-// UI lists (same as Add)
+/* --------------------------------------------------
+   UI DROPDOWN OPTIONS
+   - These are the selectable lists shown in the form
+   - Same list used in Add Item page to keep consistency
+-------------------------------------------------- */
 const CATEGORIES = ["Tops", "Bottoms", "Outerwear", "Shoes", "Accessories"] as const;
 const CONDITIONS = ["New", "Like New", "Good", "Fair"] as const;
 const SIZES = ["XS","S","M","L","XL","XXL","US 6","US 7","US 8","US 9","US 10","US 11","One Size"];
 
-// Mapping (UI -> API enums)
+/* --------------------------------------------------
+   ENUM MAPPING (UI -> API)
+   - Backend expects enum values like TOP / NEW
+   - UI shows friendly values like "Tops" / "Like New"
+-------------------------------------------------- */
 const categoryToApi: Record<string, string> = {
   Tops: "TOP",
   Bottoms: "BOTTOM",
@@ -26,23 +39,33 @@ const conditionToApi: Record<string, string> = {
   Fair: "FAIR",
 };
 
-// Reverse mapping (API -> UI)
+/* --------------------------------------------------
+   ENUM MAPPING (API -> UI)
+   - Used while loading an item to pre-fill dropdown fields
+   - Converts backend enum to UI readable label
+-------------------------------------------------- */
 const categoryFromApi: Record<string, string> = {
   TOP: "Tops",
   BOTTOM: "Bottoms",
   OUTERWEAR: "Outerwear",
   SHOES: "Shoes",
   ACCESSORY: "Accessories",
-  OTHER: "Tops",
+  OTHER: "Tops", // fallback mapping
 };
 const conditionFromApi: Record<string, string> = {
   NEW: "New",
   LIKE_NEW: "Like New",
   GOOD: "Good",
   FAIR: "Fair",
-  WORN: "Fair",
+  WORN: "Fair", // fallback mapping
 };
 
+/* --------------------------------------------------
+   COMPONENT PROPS
+   - itemId: which item to edit
+   - onCancel: callback to go back / close edit mode
+   - onSaved: optional callback after successful update
+-------------------------------------------------- */
 type Props = {
   itemId: string;
   onCancel: () => void;
@@ -50,61 +73,116 @@ type Props = {
 };
 
 export function EditItemPage({ itemId, onCancel, onSaved }: Props) {
+  /* --------------------------------------------------
+     PAGE STATUS STATE
+     - loading: used for initial data fetch
+     - saving: used when submitting update to backend
+     - error: user-friendly error message banner
+  -------------------------------------------------- */
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // form state
+  /* --------------------------------------------------
+     FORM STATE
+     - title/category/size/condition represent form values
+     - category and condition use union types from UI arrays
+  -------------------------------------------------- */
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("Tops");
+  const [category, setCategory] =
+    useState<(typeof CATEGORIES)[number]>("Tops");
   const [size, setSize] = useState("M");
-  const [condition, setCondition] = useState<(typeof CONDITIONS)[number]>("Good");
+  const [condition, setCondition] =
+    useState<(typeof CONDITIONS)[number]>("Good");
 
-  // images
+  /* --------------------------------------------------
+     IMAGE STATE
+     - existingImages: images already saved in DB (kept unless removed)
+     - newFiles: newly selected image files from file input
+     - newPreviews: preview URLs generated from selected files
+  -------------------------------------------------- */
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [newPreviews, setNewPreviews] = useState<string[]>([]);
 
-  // Load item
+  /* --------------------------------------------------
+     LOAD ITEM DETAILS
+     - Fetch item from backend using itemId
+     - Pre-fill form fields from API response
+     - Map API enums back to UI labels (category/condition)
+  -------------------------------------------------- */
   useEffect(() => {
     const load = async () => {
       try {
         setError(null);
         setLoading(true);
+
+        // Fetch item details from backend
         const res = await api.get(`/items/${itemId}`);
+
+        // The project seems to store item inside res.data.data
         const item = res.data?.data;
 
+        // Fill text/select fields
         setTitle(item.title || "");
         setSize(item.size || "M");
+
+        // Load existing images so user can keep/remove them
         setExistingImages(item.images || []);
 
+        // Map API category/condition to UI labels (fallback if missing)
         setCategory((categoryFromApi[item.category] as any) || "Tops");
         setCondition((conditionFromApi[item.condition] as any) || "Good");
       } catch (err: any) {
+        // Prefer backend error message; fallback otherwise
         setError(err?.response?.data?.message || "Failed to load item");
       } finally {
         setLoading(false);
       }
     };
+
     load();
   }, [itemId]);
 
+  /* --------------------------------------------------
+     FILE INPUT HANDLER
+     - Reads selected files (multiple images)
+     - Stores the raw File objects for upload
+     - Creates local preview URLs so the user can see images before saving
+  -------------------------------------------------- */
   const onFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
     setNewFiles(selected);
     setNewPreviews(selected.map((f) => URL.createObjectURL(f)));
   };
 
+  /* --------------------------------------------------
+     REMOVE EXISTING IMAGE (UI ONLY)
+     - Removes the image url from existingImages list
+     - This affects what is kept when saving (keepImages list)
+  -------------------------------------------------- */
   const removeExistingImage = (url: string) => {
     setExistingImages((prev) => prev.filter((x) => x !== url));
   };
 
+  /* --------------------------------------------------
+     SAVE HANDLER
+     - Builds payload for backend
+     - Converts UI enums to API enums
+     - Sends:
+       • updated item fields (title/category/size/condition)
+       • newly selected image files
+       • existingImages list (kept images after removals)
+     - Calls onSaved and then onCancel to go back
+  -------------------------------------------------- */
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
       setSaving(true);
       setError(null);
 
+      // Build update payload with correct enum mapping
       const payload = {
         title,
         category: categoryToApi[category] || "OTHER",
@@ -115,8 +193,11 @@ export function EditItemPage({ itemId, onCancel, onSaved }: Props) {
       // keepImages is the existingImages after user removed some
       await updateItemWithImages(itemId, payload, newFiles, existingImages);
 
+      // Optional callback for parent pages to refresh UI
       onSaved?.();
-      onCancel(); // go back
+
+      // Return back/close edit view
+      onCancel();
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to update item");
     } finally {
@@ -124,27 +205,37 @@ export function EditItemPage({ itemId, onCancel, onSaved }: Props) {
     }
   };
 
+  /* --------------------------------------------------
+     LOADING STATE UI
+     - Shown while item details are being fetched
+  -------------------------------------------------- */
   if (loading) {
     return <div className="max-w-2xl mx-auto px-4 py-10">Loading...</div>;
   }
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
+      {/* Back button (calls onCancel to return to previous view) */}
       <Button variant="ghost" onClick={onCancel} className="mb-6">
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back
       </Button>
 
+      {/* Main edit form card */}
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">Edit Item</CardTitle>
-          <p className="text-sm text-gray-500 mt-1">Update item details and images</p>
+          <p className="text-sm text-gray-500 mt-1">
+            Update item details and images
+          </p>
         </CardHeader>
 
         <CardContent>
+          {/* Error banner for load/save failures */}
           {error && <p className="text-red-600 mb-4">{error}</p>}
 
           <form onSubmit={handleSave} className="space-y-6">
+            {/* Item title input */}
             <Input
               id="title"
               label="Item Name"
@@ -153,9 +244,11 @@ export function EditItemPage({ itemId, onCancel, onSaved }: Props) {
               onChange={(e) => setTitle(e.target.value)}
             />
 
-            {/* Category */}
+            {/* Category dropdown */}
             <div className="w-full space-y-1">
-              <label className="text-sm font-medium text-neutral-700">Category</label>
+              <label className="text-sm font-medium text-neutral-700">
+                Category
+              </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as any)}
@@ -169,7 +262,7 @@ export function EditItemPage({ itemId, onCancel, onSaved }: Props) {
               </select>
             </div>
 
-            {/* Size */}
+            {/* Size dropdown */}
             <div className="w-full space-y-1">
               <label className="text-sm font-medium text-neutral-700">Size</label>
               <select
@@ -185,9 +278,11 @@ export function EditItemPage({ itemId, onCancel, onSaved }: Props) {
               </select>
             </div>
 
-            {/* Condition */}
+            {/* Condition selection buttons */}
             <div className="w-full space-y-1">
-              <label className="text-sm font-medium text-neutral-700">Condition</label>
+              <label className="text-sm font-medium text-neutral-700">
+                Condition
+              </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {CONDITIONS.map((cond) => (
                   <button
@@ -206,15 +301,27 @@ export function EditItemPage({ itemId, onCancel, onSaved }: Props) {
               </div>
             </div>
 
-            {/* Existing images */}
+            {/* Existing images section:
+                - Shows currently saved images
+                - User can remove images to exclude them from keepImages
+            */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-neutral-700">Current Images</label>
+              <label className="text-sm font-medium text-neutral-700">
+                Current Images
+              </label>
 
               {existingImages.length > 0 ? (
                 <div className="grid grid-cols-2 gap-2">
                   {existingImages.map((url) => (
-                    <div key={url} className="border rounded-lg overflow-hidden relative">
-                      <img src={url} className="w-full h-32 object-cover" alt="existing" />
+                    <div
+                      key={url}
+                      className="border rounded-lg overflow-hidden relative"
+                    >
+                      <img
+                        src={url}
+                        className="w-full h-32 object-cover"
+                        alt="existing"
+                      />
                       <button
                         type="button"
                         onClick={() => removeExistingImage(url)}
@@ -226,20 +333,31 @@ export function EditItemPage({ itemId, onCancel, onSaved }: Props) {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">No images kept. Add new images below.</p>
+                <p className="text-sm text-gray-500">
+                  No images kept. Add new images below.
+                </p>
               )}
             </div>
 
-            {/* Add new images */}
+            {/* Add new images:
+                - User selects new files to upload
+                - Shows previews before saving
+            */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-neutral-700">Add New Images</label>
+              <label className="text-sm font-medium text-neutral-700">
+                Add New Images
+              </label>
               <input type="file" multiple accept="image/*" onChange={onFilesChange} />
 
               {newPreviews.length > 0 ? (
                 <div className="grid grid-cols-2 gap-2 mt-2">
                   {newPreviews.map((src, i) => (
                     <div key={i} className="border rounded-lg overflow-hidden">
-                      <img src={src} className="w-full h-32 object-cover" alt={`new-${i}`} />
+                      <img
+                        src={src}
+                        className="w-full h-32 object-cover"
+                        alt={`new-${i}`}
+                      />
                     </div>
                   ))}
                 </div>
@@ -251,8 +369,17 @@ export function EditItemPage({ itemId, onCancel, onSaved }: Props) {
               )}
             </div>
 
+            {/* Action buttons:
+                - Cancel returns without saving
+                - Save submits changes and uploads new images
+            */}
             <div className="flex gap-3 pt-2">
-              <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                className="flex-1"
+              >
                 Cancel
               </Button>
               <Button type="submit" className="flex-1" isLoading={saving}>

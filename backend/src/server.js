@@ -57,7 +57,7 @@ io.on("connection", (socket) => {
     console.log(`User ${socket.userId} joined conversation ${conversationId}`);
   });
 
-  // After frontend saves message to DB, it emits send_message with messageId
+  // ✅ chat message emit
   socket.on("send_message", async ({ conversationId, messageId }) => {
     try {
       if (!conversationId || !messageId) return;
