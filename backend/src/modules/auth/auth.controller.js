@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("./auth.model");
 const crypto = require("crypto");
-const { sendVerifyEmail, sendWelcomeEmail } = require("../../utils/mailer");
+const { sendVerifyEmail, sendWelcomeEmail, sendPasswordResetEmail } = require("../../utils/mailer");
 
 /* --------------------------------------------------
    JWT TOKEN GENERATION
@@ -28,6 +28,16 @@ function createEmailVerifyToken(user) {
   user.emailVerifyExpires = new Date(Date.now() + 30 * 60 * 1000);
 
   return token; // raw token sent via email
+}
+
+function createPasswordResetToken(user) {
+  const token = crypto.randomBytes(32).toString("hex");
+  const hash = crypto.createHash("sha256").update(token).digest("hex");
+
+  user.passwordResetTokenHash = hash;
+  user.passwordResetExpires = new Date(Date.now() + 30 * 60 * 1000); // 30 mins
+
+  return token; // raw token to email
 }
 
 /* ==================================================
@@ -142,6 +152,94 @@ exports.login = async (req, res, next) => {
         isEmailVerified: user.isEmailVerified,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.forgotPassword = async (req, res, next) => {
+  try {
+    const email = req.body.email?.trim().toLowerCase();
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email });
+
+    // Always return success (prevents email enumeration)
+    res.json({
+      success: true,
+      message: "If this email exists, a reset link has been sent.",
+    });
+
+    if (!user) return;
+
+    const resetToken = createPasswordResetToken(user);
+    await user.save({ validateBeforeSave: false });
+
+    // Send email async
+    setImmediate(async () => {
+      try {
+        const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+        // You need a mailer function like sendPasswordResetEmail
+        // Implement it similar to sendVerifyEmail
+        await sendPasswordResetEmail(user.email, user.name, resetUrl);
+      } catch (e) {
+        console.error("Reset email failed:", e.message);
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.resetPassword = async (req, res, next) => {
+  try {
+    const { token, newPassword, confirmPassword } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ success: false, message: "Token is required" });
+    }
+
+    if (!newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "newPassword and confirmPassword are required",
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ success: false, message: "Passwords do not match" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters",
+      });
+    }
+
+    const hash = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await User.findOne({
+      passwordResetTokenHash: hash,
+      passwordResetExpires: { $gt: new Date() },
+    }).select("+password");
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired reset link",
+      });
+    }
+
+    user.password = newPassword; //  will hash via schema pre-save
+    user.passwordResetTokenHash = undefined;
+    user.passwordResetExpires = undefined;
+
+    await user.save();
+
+    res.json({ success: true, message: "Password reset successful. You can log in now." });
   } catch (err) {
     next(err);
   }
