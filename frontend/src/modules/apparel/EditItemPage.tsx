@@ -16,9 +16,29 @@ import { updateItemWithImages } from "../../api/apparel.api";
    - These are the selectable lists shown in the form
    - Same list used in Add Item page to keep consistency
 -------------------------------------------------- */
-const CATEGORIES = ["Tops", "Bottoms", "Outerwear", "Shoes", "Accessories"] as const;
+const CATEGORIES = [
+  "Tops",
+  "Bottoms",
+  "Outerwear",
+  "Shoes",
+  "Accessories",
+] as const;
 const CONDITIONS = ["New", "Like New", "Good", "Fair"] as const;
-const SIZES = ["XS","S","M","L","XL","XXL","US 6","US 7","US 8","US 9","US 10","US 11","One Size"];
+const SIZES = [
+  "XS",
+  "S",
+  "M",
+  "L",
+  "XL",
+  "XXL",
+  "US 6",
+  "US 7",
+  "US 8",
+  "US 9",
+  "US 10",
+  "US 11",
+  "One Size",
+];
 
 /* --------------------------------------------------
    ENUM MAPPING (UI -> API)
@@ -89,8 +109,7 @@ export function EditItemPage({ itemId, onCancel, onSaved }: Props) {
      - category and condition use union types from UI arrays
   -------------------------------------------------- */
   const [title, setTitle] = useState("");
-  const [category, setCategory] =
-    useState<(typeof CATEGORIES)[number]>("Tops");
+  const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("Tops");
   const [size, setSize] = useState("M");
   const [condition, setCondition] =
     useState<(typeof CONDITIONS)[number]>("Good");
@@ -101,7 +120,9 @@ export function EditItemPage({ itemId, onCancel, onSaved }: Props) {
      - newFiles: newly selected image files from file input
      - newPreviews: preview URLs generated from selected files
   -------------------------------------------------- */
-  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState<
+    { url: string; public_id: string }[]
+  >([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [newPreviews, setNewPreviews] = useState<string[]>([]);
 
@@ -161,8 +182,10 @@ export function EditItemPage({ itemId, onCancel, onSaved }: Props) {
      - Removes the image url from existingImages list
      - This affects what is kept when saving (keepImages list)
   -------------------------------------------------- */
-  const removeExistingImage = (url: string) => {
-    setExistingImages((prev) => prev.filter((x) => x !== url));
+  const removeExistingImage = (public_id: string) => {
+    setExistingImages((prev) =>
+      prev.filter((img) => img.public_id !== public_id),
+    );
   };
 
   /* --------------------------------------------------
@@ -264,7 +287,9 @@ export function EditItemPage({ itemId, onCancel, onSaved }: Props) {
 
             {/* Size dropdown */}
             <div className="w-full space-y-1">
-              <label className="text-sm font-medium text-neutral-700">Size</label>
+              <label className="text-sm font-medium text-neutral-700">
+                Size
+              </label>
               <select
                 value={size}
                 onChange={(e) => setSize(e.target.value)}
@@ -312,19 +337,19 @@ export function EditItemPage({ itemId, onCancel, onSaved }: Props) {
 
               {existingImages.length > 0 ? (
                 <div className="grid grid-cols-2 gap-2">
-                  {existingImages.map((url) => (
+                  {existingImages.map((img) => (
                     <div
-                      key={url}
+                      key={img.public_id}
                       className="border rounded-lg overflow-hidden relative"
                     >
                       <img
-                        src={url}
+                        src={img.url}
                         className="w-full h-32 object-cover"
                         alt="existing"
                       />
                       <button
                         type="button"
-                        onClick={() => removeExistingImage(url)}
+                        onClick={() => removeExistingImage(img.public_id)}
                         className="absolute top-2 right-2 bg-white/90 border rounded px-2 py-1 text-xs"
                       >
                         Remove
@@ -347,7 +372,12 @@ export function EditItemPage({ itemId, onCancel, onSaved }: Props) {
               <label className="text-sm font-medium text-neutral-700">
                 Add New Images
               </label>
-              <input type="file" multiple accept="image/*" onChange={onFilesChange} />
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={onFilesChange}
+              />
 
               {newPreviews.length > 0 ? (
                 <div className="grid grid-cols-2 gap-2 mt-2">
