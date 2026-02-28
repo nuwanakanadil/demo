@@ -109,6 +109,23 @@ async function sendWelcomeEmail(to, name, appUrl) {
   return sendEmail({ to, subject, text, html });
 }
 
+async function sendPasswordResetEmail(to, name, resetUrl) {
+  const subject = "Reset your ReWear password";
+  const text = `Hi ${name},\n\nYou requested a password reset.\nReset your password here:\n${resetUrl}\n\nIf you didn't request this, ignore this email.\n\nReWear Team`;
+
+  const html = wrapHtml({
+    title: `Reset your password, ${name}`,
+    subtitle: "Click the button below to set a new password. This link will expire soon.",
+    bodyHtml: `<p style="margin:0;line-height:1.7;color:#374151;">
+      We received a request to reset your ReWear password. If this was you, click below.
+    </p>`,
+    ctaText: "Reset Password",
+    ctaUrl: resetUrl,
+  });
+
+  return sendEmail({ to, subject, text, html });
+}
+
 async function sendSwapRequestEmail({
   to,
   ownerName,
@@ -244,6 +261,7 @@ async function sendSwapCompletedEmail({
 module.exports = {
   sendVerifyEmail,
   sendWelcomeEmail,
+  sendPasswordResetEmail,
   sendSwapRequestEmail,
   sendSwapStatusEmail,
   sendSwapLogisticsEmail,

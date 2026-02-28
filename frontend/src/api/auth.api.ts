@@ -52,7 +52,23 @@ export async function registerUser(
   });
   return res.data;
 }
+export const forgotPassword = async (email: string) => {
+  const res = await api.post("/auth/forgot-password", { email });
+  return res.data;
+};
 
+export const resetPassword = async (
+  token: string,
+  newPassword: string,
+  confirmPassword: string
+) => {
+  const res = await api.post("/auth/reset-password", {
+    token,
+    newPassword,
+    confirmPassword,
+  });
+  return res.data;
+};
 /* --------------------------------------------------
    GET CURRENT USER (/auth/me)
    - Uses JWT token automatically via axios interceptor
