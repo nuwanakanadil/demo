@@ -11,7 +11,7 @@ export type ApparelCreateInput = {
 
 export async function createItemWithImages(
   data: ApparelCreateInput,
-  files: File[]
+  files: File[],
 ) {
   const form = new FormData();
 
@@ -33,7 +33,7 @@ export async function updateItemWithImages(
   id: string,
   data: Record<string, any>,
   files: File[],
-  keepImages: string[]
+  keepImages: { url: string; public_id: string }[],
 ) {
   const form = new FormData();
 
@@ -41,7 +41,9 @@ export async function updateItemWithImages(
     if (v !== undefined && v !== null) form.append(k, String(v));
   });
 
+  // send objects so backend can keep url + public_id
   form.append("keepImages", JSON.stringify(keepImages));
+
   files.forEach((file) => form.append("images", file));
 
   const res = await api.put(`/items/${id}`, form, {
@@ -97,5 +99,3 @@ export async function deleteItem(id: string) {
   const res = await api.delete(`/items/${id}`);
   return res.data as { success: boolean; message?: string };
 }
-
-
