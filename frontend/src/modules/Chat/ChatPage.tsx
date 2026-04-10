@@ -12,6 +12,9 @@ import {
   Message,
 } from "../../api/chat.api";
 import { getMe } from "../../api/auth.api";
+import { API_BASE_URL } from "../../utils/env";
+
+const SOCKET_URL = API_BASE_URL.replace("/api", "");
 
 /* --------------------------------------------------
    SOCKET SERVER URL
@@ -19,9 +22,11 @@ import { getMe } from "../../api/auth.api";
    - Removes "/api" because socket server runs on same backend base
    - Fallback to localhost for development
 -------------------------------------------------- */
-const SOCKET_URL = import.meta.env.VITE_API_BASE_URL
-  ? import.meta.env.VITE_API_BASE_URL.replace("/api", "")
-  : "http://localhost:5000";
+//commented the below code sgment to run the test case
+
+// const SOCKET_URL = import.meta.env.VITE_API_BASE_URL
+//   ? import.meta.env.VITE_API_BASE_URL.replace("/api", "")
+//   : "http://localhost:5000";
 
 /* --------------------------------------------------
    UI MESSAGE TYPE
