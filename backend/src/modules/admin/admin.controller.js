@@ -94,18 +94,30 @@ export const createUserByAdmin = async (req, res, next) => {
 
 //suspend user
 
+//suspend user
+
 export const suspendUser = async (req, res, next) => {
   try {
-    const { duration } = req.body; // e.g. 7, 30, or "permanent"
+    const { duration } = req.body; // allowed: 7, 30, or "permanent"
+
+    const allowedDurations = [7, 30];
     let statusUpdate = { accountStatus: "suspended", suspensionEnd: null };
 
     if (duration === "permanent") {
       statusUpdate.accountStatus = "banned";
-    } else if (duration) {
-      const days = parseInt(duration);
-      if (!isNaN(days)) {
-        statusUpdate.suspensionEnd = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    } else {
+      const days = Number(duration);
+
+      if (!Number.isInteger(days) || !allowedDurations.includes(days)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid duration. Allowed values are 7, 30, or "permanent".',
+        });
       }
+
+      statusUpdate.suspensionEnd = new Date(
+        Date.now() + days * 24 * 60 * 60 * 1000
+      );
     }
 
     const user = await User.findOneAndUpdate(
@@ -117,7 +129,7 @@ export const suspendUser = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
 
@@ -128,10 +140,12 @@ export const suspendUser = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: "User suspended and all items blocked",
-      data: user
+      message:
+        statusUpdate.accountStatus === "banned"
+          ? "User banned and all items blocked"
+          : "User suspended and all items blocked",
+      data: user,
     });
-
   } catch (error) {
     next(error);
   }

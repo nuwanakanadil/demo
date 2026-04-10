@@ -79,12 +79,14 @@ export function NotificationBell() {
       }
     } catch {}
     
-    if (n.link) {
-      setOpen(false);
-      navigate(n.link);
-    } else {
-      setSelectedNoti(n);
-    }
+    setOpen(false);
+
+  if (n.link) {
+    setSelectedNoti(null);
+    navigate(n.link);
+  } else {
+    setSelectedNoti(n);
+}
   };
 
   const markAll = async () => {

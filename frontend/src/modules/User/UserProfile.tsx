@@ -86,12 +86,18 @@ export function UserProfilePage({ user }: { user: CurrentUser | null }) {
       }
     };
 
-    const loadAlerts = async () => {
-      try {
-        const notifs = await getMyNotifications();
-        setAdminAlerts(notifs.filter(n => (n.type === "ITEM_REMOVED" || n.type === "ITEM_BLOCKED") && !n.isRead));
-      } catch (e) {}
-    }
+   const loadAlerts = async () => {
+  try {
+    const notifs = await getMyNotifications();
+    setAdminAlerts(
+      notifs.filter(
+        n => (n.type === "ITEM_REMOVED" || n.type === "ITEM_BLOCKED") && !n.isRead
+      )
+    );
+  } catch (err) {
+    console.error("Failed to load notifications:", err);
+  }
+};
 
     if (user) {
       load();
@@ -100,11 +106,13 @@ export function UserProfilePage({ user }: { user: CurrentUser | null }) {
   }, [user]);
 
   const dismissAlert = async (id: string) => {
-    try {
-      await markNotificationRead(id);
-      setAdminAlerts(prev => prev.filter(n => n.id !== id));
-    } catch (e) {}
-  };
+  try {
+    await markNotificationRead(id);
+    setAdminAlerts(prev => prev.filter(n => n.id !== id));
+  } catch (err) {
+    console.error("Failed to dismiss alert:", err);
+  }
+};
 
     // Only load chats when user is logged in / available
     if (user) load();
