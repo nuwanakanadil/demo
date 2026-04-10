@@ -4,7 +4,9 @@ import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { listMyConversations, InboxConversation,markConversationRead } from "../../api/chat.api";
 import { updateMe, deleteMe } from "../../api/auth.api";
+import { getMyNotifications, NotificationUi, markNotificationRead } from "../../api/notification.api";
 import { MyItemsSection } from "./MyItemsSection";
+import { AlertCircle, X } from "lucide-react";
 
 
 type UserRole = "user" | "admin";
@@ -34,6 +36,9 @@ export function UserProfilePage({ user }: { user: CurrentUser | null }) {
     [conversations]
   );
 
+  // ✅ Admin alerts
+  const [adminAlerts, setAdminAlerts] = useState<NotificationUi[]>([]);
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -53,8 +58,25 @@ export function UserProfilePage({ user }: { user: CurrentUser | null }) {
       }
     };
 
-    if (user) load();
+    const loadAlerts = async () => {
+      try {
+        const notifs = await getMyNotifications();
+        setAdminAlerts(notifs.filter(n => (n.type === "ITEM_REMOVED" || n.type === "ITEM_BLOCKED") && !n.isRead));
+      } catch (e) {}
+    }
+
+    if (user) {
+      load();
+      loadAlerts();
+    }
   }, [user]);
+
+  const dismissAlert = async (id: string) => {
+    try {
+      await markNotificationRead(id);
+      setAdminAlerts(prev => prev.filter(n => n.id !== id));
+    } catch (e) {}
+  };
 
   const handleOpenChat = async (c: InboxConversation) => {
   const ownerId = c.otherUser?.id;
@@ -211,7 +233,22 @@ export function UserProfilePage({ user }: { user: CurrentUser | null }) {
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-white">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+        {/* ✅ Admin Alerts rendered at top */}
+        {adminAlerts.length > 0 && adminAlerts.map(alert => (
+          <div key={alert.id} className="relative rounded-2xl border border-rose-200 bg-rose-50 p-4 shadow-sm flex items-start gap-3">
+             <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+             <div className="flex-1">
+               <h3 className="text-sm font-bold text-rose-900">{alert.title}</h3>
+               <p className="mt-1 text-sm text-rose-700">{alert.message}</p>
+             </div>
+             <button onClick={() => dismissAlert(alert.id)} className="text-rose-400 hover:text-rose-600 bg-rose-100 hover:bg-rose-200 p-1.5 rounded-full transition-colors shrink-0">
+               <X className="w-4 h-4" />
+             </button>
+          </div>
+        ))}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* LEFT */}
           <div className="lg:col-span-1 space-y-4">

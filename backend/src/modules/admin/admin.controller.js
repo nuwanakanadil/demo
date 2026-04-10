@@ -4,6 +4,7 @@ import OwnerReview from "../review/ownerReview.model.js";
 import deleteFromCloudinary from "../../utils/cloudinaryDelete.js";
 import Swap from "../swap/swap.model.js";
 import bcrypt from "bcryptjs";
+import Notification from "../notification/notification.model.js";
 // ---------------- USERS ----------------
 export const getAllUsers = async (req, res, next) => {
   try {
@@ -95,9 +96,21 @@ export const createUserByAdmin = async (req, res, next) => {
 
 export const suspendUser = async (req, res, next) => {
   try {
+    const { duration } = req.body; // e.g. 7, 30, or "permanent"
+    let statusUpdate = { accountStatus: "suspended", suspensionEnd: null };
+
+    if (duration === "permanent") {
+      statusUpdate.accountStatus = "banned";
+    } else if (duration) {
+      const days = parseInt(duration);
+      if (!isNaN(days)) {
+        statusUpdate.suspensionEnd = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+      }
+    }
+
     const user = await User.findOneAndUpdate(
       { email: req.params.email },
-      { accountStatus: "suspended" },
+      statusUpdate,
       { new: true }
     );
 
@@ -129,7 +142,7 @@ export const activeUser = async (req, res, next) => {
   try {
     const user = await User.findOneAndUpdate(
       { email: req.params.email },
-      { accountStatus: "active" },
+      { accountStatus: "active", suspensionEnd: null },
       { new: true }
     );
 
@@ -243,6 +256,19 @@ export async function updateItemStatus(req, res, next) {
       });
     }
 
+    if (block) {
+      try {
+         await Notification.create({
+           user: item.owner,
+           type: "ITEM_BLOCKED",
+           title: "Apparel Blocked",
+           message: `Your apparel "${item.title}" was blocked by the admin. Please contact support if you believe this is a mistake.`
+         });
+      } catch (e) {
+        console.error("Failed to create ITEM_BLOCKED notification", e);
+      }
+    }
+
     res.status(200).json({
       success: true,
       message: `Item ${block ? "blocked" : "unblocked"}`,
@@ -271,6 +297,17 @@ export const deleteItem = async (req, res, next) => {
     // Delete images from Cloudinary first
     for (const image of item.images) {
       await deleteFromCloudinary(image.public_id);
+    }
+
+    try {
+       await Notification.create({
+         user: item.owner,
+         type: "ITEM_REMOVED",
+         title: "Apparel Removed",
+         message: `Your apparel "${item.title}" was removed by the admin because it is not suitable for this platform.`
+       });
+    } catch (e) {
+      console.error("Failed to create ITEM_REMOVED notification", e);
     }
 
     await item.deleteOne();
@@ -404,6 +441,7 @@ export async function getAllReviews(req, res, next) {
     const reviews = await OwnerReview.find(filter)
       .populate("revieweeId", "name email")
       .populate("reviewerId", "name email")
+      .populate("itemId", "title images")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);

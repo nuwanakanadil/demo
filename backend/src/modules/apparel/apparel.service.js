@@ -43,6 +43,9 @@ async function list(query) {
 
   if (search) filter.$text = { $search: search };
 
+  // Ensure blocked items never appear in public listing
+  filter.isBlocked = { $ne: true };
+
   const pageNum = Math.max(parseInt(page, 10) || 1, 1);
   const limitNum = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 50);
   const skip = (pageNum - 1) * limitNum;

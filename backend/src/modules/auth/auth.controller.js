@@ -91,8 +91,18 @@ exports.login = async (req, res, next) => {
 
     if (!user.isEmailVerified) throw Object.assign(new Error("Please verify your email before logging in."), { statusCode: 403 });
 
-    if (user.accountStatus === "suspended") throw Object.assign(new Error("Your account has been suspended."), { statusCode: 403 });
-    if (user.accountStatus === "banned") throw Object.assign(new Error("Your account has been banned."), { statusCode: 403 });
+    if (user.accountStatus === "suspended") {
+      if (user.suspensionEnd && user.suspensionEnd > new Date()) {
+        const daysLeft = Math.ceil((user.suspensionEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        throw Object.assign(new Error(`Your account is suspended for ${daysLeft} more days.`), { statusCode: 403 });
+      } else {
+        user.accountStatus = "active";
+        user.suspensionEnd = null;
+        await user.save({ validateBeforeSave: false });
+      }
+    }
+
+    if (user.accountStatus === "banned") throw Object.assign(new Error("Your account has been permanently banned and cannot join."), { statusCode: 403 });
 
     const token = signToken(user._id);
 

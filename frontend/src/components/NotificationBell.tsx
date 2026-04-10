@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, Check } from "lucide-react";
+import { Bell, Check, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/Button";
 import {
@@ -29,6 +29,7 @@ export function NotificationBell() {
   const [items, setItems] = useState<NotificationUi[]>([]);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [selectedNoti, setSelectedNoti] = useState<NotificationUi | null>(null);
 
   const ref = useRef<HTMLDivElement | null>(null);
 
@@ -77,8 +78,13 @@ export function NotificationBell() {
         setUnread((c) => Math.max(0, c - 1));
       }
     } catch {}
-    setOpen(false);
-    if (n.link) navigate(n.link);
+    
+    if (n.link) {
+      setOpen(false);
+      navigate(n.link);
+    } else {
+      setSelectedNoti(n);
+    }
   };
 
   const markAll = async () => {
@@ -174,6 +180,39 @@ export function NotificationBell() {
             <Button variant="outline" size="sm" className="w-full" onClick={refresh}>
               Refresh
             </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ================= NOTIFICATION DETAILS MODAL ================= */}
+      {selectedNoti && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm" onClick={() => setSelectedNoti(null)}></div>
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-5 border-b border-neutral-100 flex justify-between items-center bg-brand-50/50">
+              <h2 className="text-lg font-bold text-neutral-900 flex items-center gap-2">
+                Notification Details
+              </h2>
+              <button onClick={() => setSelectedNoti(null)} className="text-neutral-400 hover:text-neutral-600 transition-colors p-1 hover:bg-neutral-100 rounded-full">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6">
+              <h3 className="text-xl font-extrabold text-gray-900 mb-3">{selectedNoti.title}</h3>
+              {selectedNoti.message && (
+                <p className="text-sm text-gray-700 leading-relaxed bg-neutral-50 p-4 rounded-xl border border-neutral-200">
+                  {selectedNoti.message}
+                </p>
+              )}
+              <div className="mt-4 text-xs font-medium text-gray-400">
+                Received on: {new Date(selectedNoti.createdAt).toLocaleString()}
+              </div>
+              <div className="mt-6 flex justify-end">
+                <Button onClick={() => setSelectedNoti(null)} className="rounded-xl w-full">
+                  Close
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema(
     accountStatus: { type: String, enum: ["active", "suspended", "banned"], default: "active" },
     emailVerifyTokenHash: { type: String },
     emailVerifyExpires: { type: Date },
+    suspensionEnd: { type: Date, default: null },
   },
   { timestamps: true }
 );
