@@ -12,6 +12,8 @@ import {
 import { Navbar } from "../components/ui/Navbar";
 
 import { LoginPage } from "../modules/auth/LoginPage";
+import { ForgotPasswordPage } from "../modules/auth/ForgotPasswordPage";
+import { ResetPasswordPage } from "../modules/auth/ResetPasswordPage";
 import { RegisterPage } from "../modules/auth/RegisterPage";
 import { VerifyEmailPage } from "../modules/auth/VerifyEmailPage";
 
@@ -265,7 +267,14 @@ export default function AppRoutes() {
           <LoginPage
             onLogin={handleLogin}
             onNavigateRegister={() => navigate("/register")}
+            onForgotPassword={() => navigate("/forgot-password")}
           />
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <ForgotPasswordPage onBackToLogin={() => navigate("/login")} />
         }
       />
       <Route
@@ -277,6 +286,7 @@ export default function AppRoutes() {
           />
         }
       />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
       {/* Protected */}
       <Route
