@@ -3,18 +3,6 @@ const cloudinary = require("../../config/cloudinary");
 const upload = require("../../middlewares/uploadMiddleware");
 const auth = require("../../middlewares/authMiddleware");
 
-// Helper: upload buffer to Cloudinary
-const uploadToCloudinary = (buffer, folder) =>
-  new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      { folder, resource_type: "image" },
-      (error, result) => {
-        if (error) return reject(error);
-        resolve(result);
-      }
-    );
-    stream.end(buffer);
-  });
 
 // POST /api/uploads/image
 router.post("/image", auth, upload.single("image"), async (req, res, next) => {
