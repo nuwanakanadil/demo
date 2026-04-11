@@ -114,10 +114,6 @@ export function UserProfilePage({ user }: { user: CurrentUser | null }) {
   }
 };
 
-    // Only load chats when user is logged in / available
-    if (user) load();
-  }, [user]);
-
   /* --------------------------------------------------
      OPEN CHAT
      - Marks the conversation as read before navigating.
