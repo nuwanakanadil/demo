@@ -1,8 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
+import { Badge } from "../../components/ui/Badge";
+import { Input } from "../../components/ui/Input";
+import { Navbar } from "../../components/ui/Navbar";
+import { Footer } from "../../layout/Footer";
 import { getAdminDashboard } from "../../api/admin.api";
 import { RefreshCw, Users, ShoppingBag, Repeat, Star, LucideIcon } from "lucide-react";
-
 import {
   BarChart,
   Bar,
@@ -132,154 +136,75 @@ export function AdminDashboard() {
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out fill-mode-both">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 bg-white p-6 rounded-3xl border border-neutral-100 shadow-sm">
-        <div>
-          <h1 className="text-3xl font-extrabold text-neutral-900 tracking-tight">
-            Admin Dashboard
-          </h1>
-          <p className="text-neutral-500 mt-1">
-            Real-time platform metrics and activity overview.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={fetchDashboard}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-brand-200 bg-white text-brand-700 font-medium hover:bg-brand-50 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-all"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Refresh Data
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {summaryCards.map((item, index) => (
-          <div
-            key={item.name}
-            className={`group rounded-3xl border ${item.border} bg-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col relative overflow-hidden z-10`}
-            style={{ animationDelay: `${index * 100}ms` }}
-          >
-            <div
-              className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white ${item.gradientTo} opacity-40 rounded-bl-full -z-10 transition-transform group-hover:scale-110`}
-            />
-
-            <div className="flex justify-between items-start mb-4">
-              <div className={`p-4 rounded-2xl ${item.bg} ${item.color} shadow-inner`}>
-                <item.icon className="h-6 w-6 stroke-[2.5]" />
-              </div>
+    <div className="min-h-screen flex flex-col bg-white">
+      <main className="flex-1 p-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Admin Dashboard</CardTitle>
+            <Input placeholder="Search stats..." className="mt-2" />
+          </CardHeader>
+          <CardContent>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {summaryCards.map((item, index) => (
+                <Card key={item.name} className="flex flex-col items-center justify-center p-6">
+                  <div className={`p-3 rounded-full mb-4 ${item.bg} ${item.color}`}>
+                    <item.icon className="h-6 w-6" />
+                  </div>
+                  <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">{item.name}</p>
+                  <h2 className="text-4xl font-extrabold mt-2 text-gray-900">{item.value}</h2>
+                  <Badge variant={index % 2 === 0 ? "success" : "warning"} className="mt-2">{item.name}</Badge>
+                </Card>
+              ))}
             </div>
-
-            <p className="text-neutral-500 text-sm font-bold uppercase tracking-wider mb-1">
-              {item.name}
-            </p>
-            <h2 className="text-4xl font-black text-neutral-900 tracking-tight">
-              {item.value || 0}
-            </h2>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-3xl border border-neutral-100 bg-white shadow-sm p-8 hover:shadow-md transition-shadow">
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-neutral-900">Platform Overview</h2>
-            <p className="text-sm text-neutral-500">
-              Breakdown of platform metrics by category
-            </p>
-          </div>
-
-          <div className="w-full h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <XAxis
-                  dataKey="name"
-                  stroke="#9ca3af"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  dy={10}
-                />
-                <YAxis
-                  stroke="#9ca3af"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  dx={-10}
-                />
-                <Tooltip
-                  cursor={{ fill: "#f8fafc" }}
-                  contentStyle={{
-                    borderRadius: "16px",
-                    border: "none",
-                    boxShadow:
-                      "0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
-                  }}
-                  itemStyle={{ fontWeight: "bold" }}
-                />
-                <Bar dataKey="value" fill="#429172" radius={[8, 8, 8, 8]} barSize={48}>
-                  {chartData.map((_, index) => (
-                    <Cell
-                      key={`bar-cell-${index}`}
-                      fill={PIE_COLORS[index % PIE_COLORS.length]}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-neutral-100 bg-white shadow-sm p-8 hover:shadow-md transition-shadow">
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-neutral-900">Distribution Overview</h2>
-            <p className="text-sm text-neutral-500">
-              Proportional breakdown of all entities
-            </p>
-          </div>
-
-          <div className="w-full h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={110}
-                  paddingAngle={5}
-                  dataKey="value"
-                  label={({ name, percent }) =>
-                    `${name} ${((percent || 0) * 100).toFixed(0)}%`
-                  }
-                >
-                  {chartData.map((_, index) => (
-                    <Cell
-                      key={`pie-cell-${index}`}
-                      fill={PIE_COLORS[index % PIE_COLORS.length]}
-                      strokeWidth={0}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: "16px",
-                    border: "none",
-                    boxShadow:
-                      "0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
-                  }}
-                />
-                <Legend
-                  verticalAlign="bottom"
-                  height={36}
-                  iconType="circle"
-                  wrapperStyle={{ paddingTop: "20px" }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="p-6">
+                <CardHeader>
+                  <CardTitle>Platform Overview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <XAxis dataKey="name" stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
+                      <Tooltip cursor={{ fill: '#f3f4f6' }} contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                      <Bar dataKey="value" fill="#429172" radius={[6, 6, 0, 0]} barSize={40} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+              <Card className="p-6">
+                <CardHeader>
+                  <CardTitle>Distribution Overview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={chartData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`}
+                      >
+                        {chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                      <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
     </div>
   );
 }

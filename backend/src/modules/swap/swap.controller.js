@@ -19,6 +19,7 @@ async function getSwapEmailData(swapId) {
   return s;
 }
 
+// for the swapping part
 exports.createSwap = async (req, res, next) => {
   try {
     const { requestedItemId, offeredItemId, message } = req.body;
@@ -40,7 +41,7 @@ exports.createSwap = async (req, res, next) => {
         if (!populated?.owner?.email) return;
 
         const appUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-        const linkUrl = `${appUrl}`; // you can change to `${appUrl}/incoming` if you add routing later
+        const linkUrl = `${appUrl}`; 
 
         await sendSwapRequestEmail({
           to: populated.owner.email,
@@ -62,6 +63,7 @@ exports.createSwap = async (req, res, next) => {
   }
 };
 
+// for the swapping part
 exports.getIncoming = async (req, res, next) => {
   try {
     const swaps = await swapService.getIncoming(req.user.id);
@@ -71,6 +73,7 @@ exports.getIncoming = async (req, res, next) => {
   }
 };
 
+// for the swapping part
 exports.getOutgoing = async (req, res, next) => {
   try {
     const swaps = await swapService.getOutgoing(req.user.id);
@@ -80,6 +83,7 @@ exports.getOutgoing = async (req, res, next) => {
   }
 };
 
+// for the swapping logistics part
 exports.getLogistics = async (req, res, next) => {
   try {
     const swap = await swapService.getByIdForViewer({
@@ -93,6 +97,7 @@ exports.getLogistics = async (req, res, next) => {
   }
 };
 
+// for the swapping logistics part
 exports.updateLogistics = async (req, res, next) => {
   try {
     const { method, meetupLocation, meetupAt, deliveryOption, trackingRef, deliveryAddress, phoneNumber } = req.body || {};
@@ -152,6 +157,7 @@ exports.updateLogistics = async (req, res, next) => {
   }
 };
 
+// for the swapping part
 exports.acceptSwap = async (req, res, next) => {
   try {
     const swap = await swapService.acceptSwap({
@@ -189,6 +195,7 @@ exports.acceptSwap = async (req, res, next) => {
   }
 };
 
+// for the swapping part
 exports.rejectSwap = async (req, res, next) => {
   try {
     const swap = await swapService.rejectSwap({
@@ -226,6 +233,7 @@ exports.rejectSwap = async (req, res, next) => {
   }
 };
 
+// for the swapping part
 exports.completeSwap = async (req, res, next) => {
   try {
     const swap = await swapService.completeSwap({
