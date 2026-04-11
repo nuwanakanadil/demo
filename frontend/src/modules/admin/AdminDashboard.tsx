@@ -6,7 +6,7 @@ import { Input } from "../../components/ui/Input";
 import { Navbar } from "../../components/ui/Navbar";
 import { Footer } from "../../layout/Footer";
 import { getAdminDashboard } from "../../api/admin.api";
-import { RefreshCw, Users, ShoppingBag, Repeat, Star } from "lucide-react";
+import { RefreshCw, Users, ShoppingBag, Repeat, Star, LucideIcon } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -22,11 +22,27 @@ import {
 
 const PIE_COLORS = ["#3b82f6", "#429172", "#6366f1", "#f59e0b"];
 
+type DashboardData = {
+  totalUsers: number;
+  totalItems: number;
+  totalSwaps: number;
+  totalReviews: number;
+};
+
+type SummaryCard = {
+  name: string;
+  value: number;
+  icon: LucideIcon;
+  color: string;
+  bg: string;
+  border: string;
+  gradientTo: string;
+};
+
 export function AdminDashboard() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔄 Fetch function (Reusable)
   const fetchDashboard = useCallback(async () => {
     try {
       setLoading(true);
@@ -34,6 +50,7 @@ export function AdminDashboard() {
       setData(res.data);
     } catch (err) {
       console.error("Failed to load dashboard", err);
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -45,8 +62,9 @@ export function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-gray-500 py-20">
-        Loading dashboard...
+      <div className="flex flex-col items-center justify-center p-8 py-32 text-center text-neutral-500 space-y-4">
+        <RefreshCw className="w-8 h-8 text-brand-500 animate-spin" />
+        <span className="font-medium tracking-wide">Loading platform metrics...</span>
       </div>
     );
   }
@@ -54,8 +72,18 @@ export function AdminDashboard() {
   if (!data) {
     return (
       <div className="p-8">
-        <div className="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
-          Failed to load dashboard data. Please try again.
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 flex flex-col items-center text-center space-y-2">
+          <span className="text-xl font-bold text-rose-700">Oops! Data missing.</span>
+          <p className="text-rose-600">
+            Failed to load dashboard data. Please check your connection or backend.
+          </p>
+          <Button
+            variant="outline"
+            className="mt-4 border-rose-300 text-rose-700 hover:bg-rose-100"
+            onClick={fetchDashboard}
+          >
+            Try Again
+          </Button>
         </div>
       </div>
     );
@@ -68,11 +96,43 @@ export function AdminDashboard() {
     { name: "Reviews", value: data.totalReviews },
   ];
 
-  const summaryCards = [
-    { name: "Total Users", value: data.totalUsers, icon: Users, color: "text-blue-600", bg: "bg-blue-100" },
-    { name: "Total Items", value: data.totalItems, icon: ShoppingBag, color: "text-brand-600", bg: "bg-brand-100" },
-    { name: "Total Swaps", value: data.totalSwaps, icon: Repeat, color: "text-indigo-600", bg: "bg-indigo-100" },
-    { name: "Total Reviews", value: data.totalReviews, icon: Star, color: "text-amber-600", bg: "bg-amber-100" },
+  const summaryCards: SummaryCard[] = [
+    {
+      name: "Total Users",
+      value: data.totalUsers,
+      icon: Users,
+      color: "text-blue-600",
+      bg: "bg-blue-50",
+      border: "border-blue-100",
+      gradientTo: "to-blue-50",
+    },
+    {
+      name: "Total Items",
+      value: data.totalItems,
+      icon: ShoppingBag,
+      color: "text-brand-600",
+      bg: "bg-brand-50",
+      border: "border-brand-100",
+      gradientTo: "to-brand-50",
+    },
+    {
+      name: "Total Swaps",
+      value: data.totalSwaps,
+      icon: Repeat,
+      color: "text-indigo-600",
+      bg: "bg-indigo-50",
+      border: "border-indigo-100",
+      gradientTo: "to-indigo-50",
+    },
+    {
+      name: "Total Reviews",
+      value: data.totalReviews,
+      icon: Star,
+      color: "text-amber-600",
+      bg: "bg-amber-50",
+      border: "border-amber-100",
+      gradientTo: "to-amber-50",
+    },
   ];
 
   return (

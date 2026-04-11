@@ -73,6 +73,7 @@ const userSchema = new mongoose.Schema(
 
     // Expiration time for verification token
     emailVerifyExpires: { type: Date },
+    suspensionEnd: { type: Date, default: null },
 
     passwordResetTokenHash: { type: String },
     passwordResetExpires: { type: Date },

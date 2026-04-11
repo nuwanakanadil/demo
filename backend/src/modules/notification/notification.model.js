@@ -6,7 +6,7 @@ const notificationSchema = new mongoose.Schema(
 
     type: {
       type: String,
-      enum: ["SWAP_REQUEST", "SWAP_ACCEPTED", "SWAP_REJECTED", "SWAP_COMPLETED", "CHAT_MESSAGE"],
+      enum: ["SWAP_REQUEST", "SWAP_ACCEPTED", "SWAP_REJECTED", "SWAP_COMPLETED", "CHAT_MESSAGE", "ITEM_REMOVED", "ITEM_BLOCKED"],
       required: true,
     },
 
