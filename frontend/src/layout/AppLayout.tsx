@@ -6,28 +6,34 @@ import { clearToken } from "../auth/auth";
 export function AppLayout({
   userRole,
   onLogout,
-}: {
+  onNavigateIntent,
+}: Readonly<{
   userRole: "user" | "admin";
   onLogout: () => void;
-}) {
+  onNavigateIntent?: (path: string) => void;
+}>) {
   const navigate = useNavigate();
   const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith("/admin");
 
   return (
-    <div className="min-h-screen bg-white font-sans text-neutral-900">
-      <Navbar
-        currentPage={location.pathname}
-        onNavigate={(path) => navigate(path)}
-        userRole={userRole}
-        onLogout={() => {
-          clearToken();
-          onLogout();
-          navigate("/login");
-        }}
-      />
-      <main className="pb-16">
+    <div className="min-h-screen bg-transparent font-sans text-neutral-900">
+      {!isAdminRoute && (
+        <Navbar
+          currentPage={location.pathname}
+          onNavigate={(path) => navigate(path)}
+          onNavigateIntent={onNavigateIntent}
+          userRole={userRole}
+          onLogout={() => {
+            clearToken();
+            onLogout();
+            navigate("/login");
+          }}
+        />
+      )}
+      <div>
         <Outlet />
-      </main>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import { Button } from "../../components/ui/Button";
-import { Search, Tag, PackageSearch, AlertTriangle, ShieldCheck, X, Image as ImageIcon, Shirt } from "lucide-react";
+import { TablePagination } from "../../components/ui/TablePagination";
+import { useToast } from "../../components/ui/ToastProvider";
+import { TextSearchInput } from "../../components/ui/TextSearchInput";
+import { StateDisplay } from "../../components/ui/StateDisplay";
+import { AdminDialog } from "../../components/ui/AdminDialog";
+import { Tag, PackageSearch, AlertTriangle, ShieldCheck, X, Image as ImageIcon, Shirt } from "lucide-react";
 
 interface Item {
   _id: string;
@@ -18,17 +24,44 @@ interface Item {
   }[];
 }
 
+const ITEMS_PER_PAGE = 10;
+const CONTROL_CLASS =
+  "rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-700 outline-none transition-all focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30";
+
 export default function AdminItems() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [items, setItems] = useState<Item[]>([]);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [blockedFilter, setBlockedFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const [showSaveViewModal, setShowSaveViewModal] = useState(false);
+  const [saveViewName, setSaveViewName] = useState("");
+  const [savedViews, setSavedViews] = useState<Array<{ name: string; blocked: string; category: string }>>(() => {
+    try {
+      const raw = localStorage.getItem("adminItemsSavedViews");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  const toast = useToast();
 
   // ---------------- FETCH ITEMS ----------------
   const fetchItems = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/admin/items?limit=1000");
+      const res = await api.get("/admin/items", {
+        params: {
+          limit: 1000,
+          ...(blockedFilter !== "" ? { blocked: blockedFilter } : {}),
+          ...(categoryFilter ? { category: categoryFilter } : {}),
+        },
+      });
       setItems(res.data?.data || []);
     } catch (err) {
       console.error(err);
@@ -39,8 +72,15 @@ export default function AdminItems() {
   };
 
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    setBlockedFilter(params.get("blocked") ?? "");
+    setCategoryFilter(params.get("category") ?? "");
+  }, [location.search]);
+
+  useEffect(() => {
     fetchItems();
-  }, []);
+    setSelectedItemIds([]);
+  }, [blockedFilter, categoryFilter]);
 
   // ---------------- BLOCK / UNBLOCK ----------------
   const toggleBlockItem = async (id: string, currentStatus: boolean) => {
@@ -51,14 +91,65 @@ export default function AdminItems() {
 
       fetchItems();
       setSelectedItem(null);
+      toast.success(currentStatus ? "Item unblocked" : "Item blocked", "Status was updated successfully.");
     } catch (err) {
       console.error("Update failed", err);
+      toast.error("Update failed", "Could not update item status.");
     }
+  };
+
+  const bulkBlockItems = async (block: boolean) => {
+    if (selectedItemIds.length === 0) return;
+    try {
+      await api.post("/admin/items/bulk-block", { itemIds: selectedItemIds, block });
+      await fetchItems();
+      setSelectedItemIds([]);
+    } catch (err) {
+      console.error(err);
+      toast.error("Bulk action failed", "Could not update selected items.");
+    }
+  };
+
+  const saveCurrentView = () => {
+    setSaveViewName("");
+    setShowSaveViewModal(true);
+  };
+
+  const confirmSaveCurrentView = () => {
+    const name = saveViewName.trim();
+    if (!name) {
+      toast.info("View name required", "Please enter a name for this saved view.");
+      return;
+    }
+    const next = [...savedViews, { name, blocked: blockedFilter, category: categoryFilter }];
+    setSavedViews(next);
+    localStorage.setItem("adminItemsSavedViews", JSON.stringify(next));
+    setShowSaveViewModal(false);
+  };
+
+  const applySavedView = (name: string) => {
+    const found = savedViews.find((v) => v.name === name);
+    if (!found) return;
+    const params = new URLSearchParams();
+    if (found.blocked !== "") params.set("blocked", found.blocked);
+    if (found.category) params.set("category", found.category);
+    navigate(`/admin/items${params.toString() ? `?${params.toString()}` : ""}`);
   };
 
   // ---------------- FILTER ----------------
   const filteredItems = items.filter((item) =>
     item.title.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedItems = filteredItems.slice(
+    (safePage - 1) * ITEMS_PER_PAGE,
+    safePage * ITEMS_PER_PAGE
   );
 
   return (
@@ -68,36 +159,95 @@ export default function AdminItems() {
         <div>
           <h1 className="text-3xl font-extrabold text-neutral-900 tracking-tight">Apparels & Items</h1>
           <p className="text-neutral-500 mt-1">Monitor, moderate, and review user-listed apparels.</p>
+          {blockedFilter === "true" && (
+            <p className="mt-2 inline-flex rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+              Filter: Blocked items only
+            </p>
+          )}
         </div>
       </div>
 
       <div className="bg-white rounded-3xl border border-neutral-100 shadow-sm overflow-hidden">
         {/* ================= SEARCH ================= */}
         <div className="p-6 border-b border-neutral-100 bg-neutral-50/50">
-          <div className="relative max-w-md">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-neutral-400" />
-            </div>
-            <input
-              type="text"
+          <div className="flex flex-wrap items-center gap-3">
+            <TextSearchInput
               placeholder="Search items by title..."
-              className="pl-12 pr-4 py-3 w-full bg-white border border-neutral-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow shadow-sm outline-none"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={setSearch}
             />
+            <select
+              value={blockedFilter}
+              onChange={(e) => {
+                const value = e.target.value;
+                const params = new URLSearchParams(location.search);
+                if (value === "") params.delete("blocked");
+                else params.set("blocked", value);
+                navigate(`/admin/items${params.toString() ? `?${params.toString()}` : ""}`);
+              }}
+              className={CONTROL_CLASS}
+            >
+              <option value="">All statuses</option>
+              <option value="true">Blocked</option>
+              <option value="false">Active</option>
+            </select>
+            <select
+              value={categoryFilter}
+              onChange={(e) => {
+                const value = e.target.value;
+                const params = new URLSearchParams(location.search);
+                if (!value) params.delete("category");
+                else params.set("category", value);
+                navigate(`/admin/items${params.toString() ? `?${params.toString()}` : ""}`);
+              }}
+              className={CONTROL_CLASS}
+            >
+              <option value="">All categories</option>
+              <option value="TOP">Top</option>
+              <option value="BOTTOM">Bottom</option>
+              <option value="DRESS">Dress</option>
+              <option value="OUTERWEAR">Outerwear</option>
+              <option value="SHOES">Shoes</option>
+              <option value="ACCESSORY">Accessory</option>
+              <option value="OTHER">Other</option>
+            </select>
+            <Button variant="outline" onClick={saveCurrentView}>Save View</Button>
+            <select
+              defaultValue=""
+              onChange={(e) => applySavedView(e.target.value)}
+              className={CONTROL_CLASS}
+            >
+              <option value="">Saved views</option>
+              {savedViews.map((v) => (
+                <option key={v.name} value={v.name}>{v.name}</option>
+              ))}
+            </select>
+            <Button variant="outline" disabled={selectedItemIds.length === 0} onClick={() => bulkBlockItems(true)}>Bulk Block</Button>
+            <Button variant="outline" disabled={selectedItemIds.length === 0} onClick={() => bulkBlockItems(false)}>Bulk Unblock</Button>
           </div>
         </div>
 
         {/* ================= TABLE ================= */}
         <div className="overflow-x-auto">
           {loading ? (
-            <div className="flex justify-center p-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
-            </div>
+            <StateDisplay type="loading" title="Loading items..." />
           ) : (
             <table className="w-full text-sm text-left">
               <thead className="bg-neutral-50 text-neutral-500 uppercase tracking-wider text-xs font-semibold">
                 <tr>
+                  <th className="px-6 py-4">
+                    <input
+                      type="checkbox"
+                      checked={paginatedItems.length > 0 && paginatedItems.every((i) => selectedItemIds.includes(i._id))}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedItemIds((prev) => Array.from(new Set([...prev, ...paginatedItems.map((i) => i._id)])));
+                        } else {
+                          setSelectedItemIds((prev) => prev.filter((id) => !paginatedItems.some((i) => i._id === id)));
+                        }
+                      }}
+                    />
+                  </th>
                   <th className="px-6 py-4">Item Details</th>
                   <th className="px-6 py-4">Category & Size</th>
                   <th className="px-6 py-4">Status</th>
@@ -107,21 +257,43 @@ export default function AdminItems() {
               <tbody className="divide-y divide-neutral-100">
                 {filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center justify-center text-neutral-400 space-y-2">
-                        <PackageSearch className="w-12 h-12 stroke-[1.5]" />
-                        <p className="text-base font-medium">No items found</p>
-                      </div>
+                    <td colSpan={5} className="px-6 py-12 text-center">
+                      <StateDisplay
+                        type="empty"
+                        title="No items found"
+                        description="Try another search term or clear filters."
+                        icon={<PackageSearch className="w-12 h-12 stroke-[1.5] text-neutral-300" />}
+                        className="py-0"
+                      />
                     </td>
                   </tr>
                 ) : (
-                  filteredItems.map((item) => (
+                  paginatedItems.map((item) => (
                     <tr key={item._id} className="hover:bg-brand-50/50 transition-colors group">
+                      <td className="px-6 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedItemIds.includes(item._id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedItemIds((prev) => Array.from(new Set([...prev, item._id])));
+                            } else {
+                              setSelectedItemIds((prev) => prev.filter((id) => id !== item._id));
+                            }
+                          }}
+                        />
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
                           <div className="w-14 h-14 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200 flex items-center justify-center">
                             {item.images?.length > 0 ? (
-                              <img src={item.images[0].url} alt={item.title} className="w-full h-full object-cover" />
+                              <img
+                                src={item.images[0].url}
+                                alt={item.title}
+                                loading="lazy"
+                                decoding="async"
+                                className="w-full h-full object-cover"
+                              />
                             ) : (
                               <ImageIcon className="w-6 h-6 text-neutral-300" />
                             )}
@@ -170,6 +342,14 @@ export default function AdminItems() {
             </table>
           )}
         </div>
+
+        <TablePagination
+          currentPage={safePage}
+          totalPages={totalPages}
+          totalItems={filteredItems.length}
+          itemsPerPage={ITEMS_PER_PAGE}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* ================= MODAL POPUP ================= */}
@@ -197,7 +377,13 @@ export default function AdminItems() {
                       <div className="grid grid-cols-2 gap-3 aspect-square">
                         {selectedItem.images.map((img, index) => (
                           <div key={index} className={`rounded-2xl overflow-hidden border border-neutral-100 bg-neutral-50 ${index === 0 ? 'col-span-2 row-span-2 aspect-[4/3]' : 'aspect-square'}`}>
-                            <img src={img.url} alt="item" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+                            <img
+                              src={img.url}
+                              alt="item"
+                              loading="lazy"
+                              decoding="async"
+                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                            />
                           </div>
                         ))}
                       </div>
@@ -256,6 +442,33 @@ export default function AdminItems() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ================= SAVE VIEW MODAL ================= */}
+      {showSaveViewModal && (
+        <AdminDialog
+          open={showSaveViewModal}
+          onClose={() => setShowSaveViewModal(false)}
+          title="Save current view"
+          subtitle="Save active filters as a reusable preset."
+          size="sm"
+          zIndexClassName="z-[60]"
+          footer={
+            <div className="flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => setShowSaveViewModal(false)} className="rounded-xl">Cancel</Button>
+              <Button onClick={confirmSaveCurrentView} className="rounded-xl">Save View</Button>
+            </div>
+          }
+        >
+          <input
+            type="text"
+            value={saveViewName}
+            onChange={(e) => setSaveViewName(e.target.value)}
+            placeholder="e.g. Blocked shoes"
+            className={`w-full ${CONTROL_CLASS}`}
+            autoFocus
+          />
+        </AdminDialog>
       )}
     </div>
   );

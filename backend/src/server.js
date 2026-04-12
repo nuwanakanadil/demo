@@ -2,6 +2,7 @@ require("dotenv").config();
 const http = require("http");
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 
 const app = require("./app");
 const connectDB = require("./config/db");
@@ -72,6 +73,40 @@ io.on("connection", (socket) => {
     console.log("❌ Socket disconnected:", socket.id);
   });
 });
+
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(`Port ${PORT} is already in use. Stop the other process or change PORT in .env.`);
+    process.exit(1);
+  }
+
+  console.error("Server failed to start:", err.message);
+  process.exit(1);
+});
+
+const gracefulShutdown = () => {
+  const forceExitTimer = setTimeout(() => {
+    process.exit(0);
+  }, 3000);
+
+  io.close(() => {
+    server.close(async () => {
+      clearTimeout(forceExitTimer);
+
+      try {
+        await mongoose.connection.close();
+      } catch (err) {
+        console.error("MongoDB close error:", err.message);
+      }
+
+      process.exit(0);
+    });
+  });
+};
+
+process.once("SIGUSR2", gracefulShutdown);
+process.on("SIGINT", gracefulShutdown);
+process.on("SIGTERM", gracefulShutdown);
 
 server.listen(PORT, () => {
   console.log(`Server running on ${PORT} 🚀`);

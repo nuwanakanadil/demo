@@ -4,9 +4,13 @@ import { SwapRequestCard } from "../../components/SwapRequestCard";
 import { Inbox } from "lucide-react";
 import { getIncomingSwaps, acceptSwap, rejectSwap, completeSwap } from "../../api/swap.api";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../../components/ui/ToastProvider";
+import { Button } from "../../components/ui/Button";
+import { StateDisplay } from "../../components/ui/StateDisplay";
 
 export function IncomingRequestsPage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [requests, setRequests] = useState<SwapRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,8 +36,9 @@ export function IncomingRequestsPage() {
     try {
       await acceptSwap(id);
       setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "accepted" } : r)));
+      toast.success("Swap accepted", "Requester has been notified.");
     } catch (e: any) {
-      alert(e?.response?.data?.message || "Failed to accept request");
+      toast.error("Failed to accept request", e?.response?.data?.message || "Please try again.");
     }
   };
 
@@ -41,8 +46,9 @@ export function IncomingRequestsPage() {
     try {
       await rejectSwap(id);
       setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "rejected" } : r)));
+      toast.info("Swap rejected", "Requester has been notified.");
     } catch (e: any) {
-      alert(e?.response?.data?.message || "Failed to reject request");
+      toast.error("Failed to reject request", e?.response?.data?.message || "Please try again.");
     }
   };
 
@@ -50,8 +56,9 @@ export function IncomingRequestsPage() {
     try {
       await completeSwap(id);
       setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: "completed" } : r)));
+      toast.success("Swap completed", "Great! The swap is now closed.");
     } catch (e: any) {
-      alert(e?.response?.data?.message || "Failed to complete swap");
+      toast.error("Failed to complete swap", e?.response?.data?.message || "Please try again.");
     }
   };
 
@@ -68,29 +75,36 @@ export function IncomingRequestsPage() {
           </div>
         </div>
 
-        <button
-          className="text-sm font-semibold text-brand-600 hover:text-brand-500"
-          onClick={load}
-        >
+        <Button variant="ghost" size="sm" onClick={load}>
           Refresh
-        </button>
+        </Button>
       </div>
 
       {error && (
-        <div className="mb-5 rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">
-          {error}{" "}
-          <button className="underline font-medium ml-2" onClick={load}>
-            Retry
-          </button>
+        <div className="mb-5 rounded-xl border border-rose-200 bg-rose-50/70">
+          <StateDisplay
+            type="error"
+            title="Could not load incoming requests"
+            description={error}
+            className="py-6"
+            action={
+              <Button variant="outline" size="sm" onClick={load}>
+                Retry
+              </Button>
+            }
+          />
         </div>
       )}
 
       {loading ? (
-        <div className="py-16 text-center text-gray-500">Loading incoming requests…</div>
+        <StateDisplay type="loading" title="Loading incoming requests..." />
       ) : requests.length === 0 ? (
-        <div className="text-center py-14 bg-neutral-50 rounded-xl border border-neutral-200">
-          <p className="text-gray-600 font-medium">No incoming requests yet.</p>
-          <p className="text-sm text-gray-500 mt-1">When someone requests your items, it appears here.</p>
+        <div className="rounded-xl border border-neutral-200 bg-neutral-50/75">
+          <StateDisplay
+            type="empty"
+            title="No incoming requests yet"
+            description="When someone requests your items, it appears here."
+          />
         </div>
       ) : (
         <div className="space-y-4">

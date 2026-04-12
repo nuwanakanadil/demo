@@ -1,4 +1,6 @@
 const OwnerReview = require("./ownerReview.model");
+const User = require("../auth/auth.model");
+const Apparel = require("../apparel/apparel.model");
 
 /* ==================================================
    LIST REVIEWS FOR AN OWNER
@@ -108,13 +110,28 @@ exports.addForOwner = async (req, res, next) => {
     // (owner + reviewer + item)
     // → update it
     // If not → create new
-    const review = await OwnerReview.findOneAndUpdate(
+    let review = await OwnerReview.findOneAndUpdate(
       { revieweeId: userId, reviewerId, itemId },
       { rating, comment },
       { new: true, upsert: true }
-    )
-      .populate("reviewerId", "name")
-      .populate("itemId", "title");
+    );
+
+    // Keep response stable for both unit-test mocks and real mongoose docs.
+    if (review && typeof review.populate === "function") {
+      review = await review.populate("reviewerId", "name");
+      review = await review.populate("itemId", "title");
+    }
+
+    const reviewerRef = review.reviewerId?._id || review.reviewerId?.id || review.reviewerId;
+    const itemRef = review.itemId?._id || review.itemId?.id || review.itemId;
+
+    const reviewerName = review.reviewerId?.name
+      || (await User.findById(reviewerRef).select("name").lean())?.name
+      || "Unknown";
+
+    const itemTitle = review.itemId?.title
+      || (await Apparel.findById(itemRef).select("title").lean())?.title
+      || "Item";
 
     /* ---------- RESPONSE ---------- */
 
@@ -126,12 +143,12 @@ exports.addForOwner = async (req, res, next) => {
         comment: review.comment,
         createdAt: review.createdAt,
         reviewer: {
-          id: review.reviewerId?._id,
-          name: review.reviewerId?.name || "Unknown",
+          id: reviewerRef,
+          name: reviewerName,
         },
         item: {
-          id: review.itemId?._id,
-          title: review.itemId?.title || "Item",
+          id: itemRef,
+          title: itemTitle,
         },
       },
     });

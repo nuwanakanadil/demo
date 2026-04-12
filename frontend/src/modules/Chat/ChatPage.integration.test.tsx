@@ -61,7 +61,7 @@ describe("ChatPage integration", () => {
 
     Storage.prototype.removeItem = jest.fn();
 
-    window.HTMLElement.prototype.scrollIntoView = jest.fn();
+    globalThis.HTMLElement.prototype.scrollIntoView = jest.fn();
   });
 
   function renderPage(initialPath = "/chat/item123/owner1") {
@@ -273,7 +273,7 @@ describe("ChatPage integration", () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText(/chat/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /back/i })).toBeInTheDocument();
     });
 
     const backButton = screen.getByRole("button", { name: /back/i });

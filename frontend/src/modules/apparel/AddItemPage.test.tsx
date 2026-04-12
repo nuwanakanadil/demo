@@ -2,6 +2,10 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { AddItemPage } from "./AddItemPage";
 import "@testing-library/jest-dom";
 
+if (!global.URL.createObjectURL) {
+  global.URL.createObjectURL = jest.fn(() => "blob:test-url");
+}
+
 /* --------------------------------------------
    MOCK API
 -------------------------------------------- */
@@ -18,6 +22,7 @@ jest.mock("lucide-react", () => ({
   ImagePlus: () => <div>ImageIcon</div>,
   CheckCircle: () => <div>CheckIcon</div>,
   ArrowLeft: () => <div>BackIcon</div>,
+  Loader2: () => <div>LoaderIcon</div>,
 }));
 
 /* --------------------------------------------
@@ -60,8 +65,8 @@ describe("AddItemPage", () => {
 
     expect(screen.getByText(/List a New Item/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Vintage Denim Jacket/i)).toBeInTheDocument();
-    expect(screen.getByText(/Category/i)).toBeInTheDocument();
-    expect(screen.getByText(/Size/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Category/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Size$/i)).toBeInTheDocument();
   });
 
   /* --------------------------------------------

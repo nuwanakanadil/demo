@@ -28,6 +28,9 @@ type ProductDetails = {
   description: string;
 };
 
+const CONTROL_CLASS =
+  "w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-700 outline-none transition-all focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30";
+
 export function ProductDetailsPage() {
   /* --------------------------------------------------
      ROUTE + NAVIGATION
@@ -431,7 +434,7 @@ export function ProductDetailsPage() {
                       <select
                         value={rating}
                         onChange={(e) => setRating(Number(e.target.value))}
-                        className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        className={CONTROL_CLASS}
                       >
                         <option value={5}>5 - Excellent</option>
                         <option value={4}>4 - Good</option>
@@ -449,7 +452,7 @@ export function ProductDetailsPage() {
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
                         placeholder="Write your experience with this owner..."
-                        className="w-full min-h-[90px] rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        className={`${CONTROL_CLASS} min-h-[90px]`}
                       />
                     </div>
                   </div>

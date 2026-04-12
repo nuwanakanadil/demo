@@ -12,7 +12,7 @@ const swapSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["PENDING", "ACCEPTED", "REJECTED", "COMPLETED", "CANCELLED"],
+      enum: ["PENDING", "ACCEPTED", "REJECTED", "COMPLETED", "CANCELLED", "EXPIRED"],
       default: "PENDING",
     },
     logistics: {
@@ -37,5 +37,6 @@ const swapSchema = new mongoose.Schema(
 
 // Helps prevent duplicates (basic)
 swapSchema.index({ requester: 1, requestedItem: 1, status: 1 });
+swapSchema.index({ status: 1, createdAt: 1 });
 
 module.exports = mongoose.model("Swap", swapSchema);

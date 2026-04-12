@@ -1,47 +1,135 @@
-import React, { useEffect, useState } from "react";
+import React, { Suspense, lazy, useEffect, useState } from "react";
 import {
   Routes,
   Route,
   Navigate,
   useNavigate,
   useParams,
-  Outlet,
   useLocation,
 } from "react-router-dom";
-
-import { Navbar } from "../components/ui/Navbar";
-
-import { LoginPage } from "../modules/auth/LoginPage";
-import { ForgotPasswordPage } from "../modules/auth/ForgotPasswordPage";
-import { ResetPasswordPage } from "../modules/auth/ResetPasswordPage";
-import { RegisterPage } from "../modules/auth/RegisterPage";
-import { VerifyEmailPage } from "../modules/auth/VerifyEmailPage";
-
-import { BrowsePage } from "../modules/apparel/BrowsePage";
-import { AddItemPage } from "../modules/apparel/AddItemPage";
-import { EditItemPage } from "../modules/apparel/EditItemPage";
-
-import { RequestSwapPage } from "../modules/swap/RequestSwapPage";
-import { IncomingRequestsPage } from "../modules/swap/IncomingRequestsPage";
-import { MyRequestsPage } from "../modules/swap/MyRequestsPage";
-import { HistoryPage } from "../modules/swap/HistoryPage";
-import { AdminDashboard } from "../modules/admin/AdminDashboard";
-
-import { ProductDetailsPage } from "../modules/apparel/ProductDetailsPage";
-
-import { UserProfilePage } from "../modules/User/UserProfile";
+import { AppLayout } from "../layout/AppLayout";
+import { LandingPage } from "../pages/LandingPage";
 
 import { getMe } from "../api/auth.api"; // ✅ add this
 import { Apparel } from "../types";
-import { ChatPage } from "../modules/Chat/ChatPage";
-import { WishlistHubPage } from "../pages/WishlistHubPage";
-import { SwapLogisticsPage } from "../pages/Delevery/SwapLogisticsPage";
 
-import AdminLayout from "../modules/admin/AdminLayout";
-import AdminUsers from "../modules/admin/AdminUsers";
-import AdminItems from "../modules/admin/AdminItems";
-import AdminSwaps from "../modules/admin/AdminSwaps";
-import AdminReviews from "../modules/admin/AdminReviews";
+const loadLoginPage = () =>
+  import("../modules/auth/LoginPage").then((m) => ({ default: m.LoginPage }));
+const loadForgotPasswordPage = () =>
+  import("../modules/auth/ForgotPasswordPage").then((m) => ({ default: m.ForgotPasswordPage }));
+const loadResetPasswordPage = () =>
+  import("../modules/auth/ResetPasswordPage").then((m) => ({ default: m.ResetPasswordPage }));
+const loadRegisterPage = () =>
+  import("../modules/auth/RegisterPage").then((m) => ({ default: m.RegisterPage }));
+const loadVerifyEmailPage = () =>
+  import("../modules/auth/VerifyEmailPage").then((m) => ({ default: m.VerifyEmailPage }));
+
+const loadBrowsePage = () =>
+  import("../modules/apparel/BrowsePage").then((m) => ({ default: m.BrowsePage }));
+const loadAddItemPage = () =>
+  import("../modules/apparel/AddItemPage").then((m) => ({ default: m.AddItemPage }));
+const loadEditItemPage = () =>
+  import("../modules/apparel/EditItemPage").then((m) => ({ default: m.EditItemPage }));
+const loadProductDetailsPage = () =>
+  import("../modules/apparel/ProductDetailsPage").then((m) => ({ default: m.ProductDetailsPage }));
+
+const loadRequestSwapPage = () =>
+  import("../modules/swap/RequestSwapPage").then((m) => ({ default: m.RequestSwapPage }));
+const loadIncomingRequestsPage = () =>
+  import("../modules/swap/IncomingRequestsPage").then((m) => ({ default: m.IncomingRequestsPage }));
+const loadMyRequestsPage = () =>
+  import("../modules/swap/MyRequestsPage").then((m) => ({ default: m.MyRequestsPage }));
+const loadHistoryPage = () =>
+  import("../modules/swap/HistoryPage").then((m) => ({ default: m.HistoryPage }));
+const loadSwapLogisticsPage = () =>
+  import("../pages/Delevery/SwapLogisticsPage").then((m) => ({ default: m.SwapLogisticsPage }));
+
+const loadChatPage = () =>
+  import("../modules/Chat/ChatPage").then((m) => ({ default: m.ChatPage }));
+const loadUserProfilePage = () =>
+  import("../modules/User/UserProfile").then((m) => ({ default: m.UserProfilePage }));
+const loadWishlistHubPage = () =>
+  import("../pages/WishlistHubPage").then((m) => ({ default: m.WishlistHubPage }));
+
+const loadAdminLayout = () => import("../modules/admin/AdminLayout");
+const loadAdminDashboard = () =>
+  import("../modules/admin/AdminDashboard").then((m) => ({ default: m.AdminDashboard }));
+const loadAdminUsers = () => import("../modules/admin/AdminUsers");
+const loadAdminItems = () => import("../modules/admin/AdminItems");
+const loadAdminSwaps = () => import("../modules/admin/AdminSwaps");
+const loadAdminReviews = () => import("../modules/admin/AdminReviews");
+const loadAdminAuditLogs = () => import("../modules/admin/AdminAuditLogs");
+
+const LoginPage = lazy(loadLoginPage);
+const ForgotPasswordPage = lazy(loadForgotPasswordPage);
+const ResetPasswordPage = lazy(loadResetPasswordPage);
+const RegisterPage = lazy(loadRegisterPage);
+const VerifyEmailPage = lazy(loadVerifyEmailPage);
+
+const BrowsePage = lazy(loadBrowsePage);
+const AddItemPage = lazy(loadAddItemPage);
+const EditItemPage = lazy(loadEditItemPage);
+const ProductDetailsPage = lazy(loadProductDetailsPage);
+
+const RequestSwapPage = lazy(loadRequestSwapPage);
+const IncomingRequestsPage = lazy(loadIncomingRequestsPage);
+const MyRequestsPage = lazy(loadMyRequestsPage);
+const HistoryPage = lazy(loadHistoryPage);
+const SwapLogisticsPage = lazy(loadSwapLogisticsPage);
+
+const ChatPage = lazy(loadChatPage);
+const UserProfilePage = lazy(loadUserProfilePage);
+const WishlistHubPage = lazy(loadWishlistHubPage);
+
+const AdminLayout = lazy(loadAdminLayout);
+const AdminDashboard = lazy(loadAdminDashboard);
+const AdminUsers = lazy(loadAdminUsers);
+const AdminItems = lazy(loadAdminItems);
+const AdminSwaps = lazy(loadAdminSwaps);
+const AdminReviews = lazy(loadAdminReviews);
+const AdminAuditLogs = lazy(loadAdminAuditLogs);
+
+function RouteSkeleton({ path }: Readonly<{ path: string }>) {
+  const isAdmin = path.startsWith("/admin");
+  const isAuth = path === "/login" || path === "/register" || path === "/forgot-password";
+
+  if (isAdmin) {
+    return (
+      <div className="p-6">
+        <div className="h-10 w-56 rounded-xl bg-neutral-200/80 animate-pulse" />
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((k) => (
+            <div key={k} className="h-28 rounded-2xl bg-neutral-100 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuth) {
+    return (
+      <div className="mx-auto mt-16 w-full max-w-md rounded-3xl border border-neutral-200 bg-white p-8 shadow-sm">
+        <div className="h-6 w-40 rounded-md bg-neutral-200 animate-pulse" />
+        <div className="mt-6 space-y-3">
+          <div className="h-11 rounded-xl bg-neutral-100 animate-pulse" />
+          <div className="h-11 rounded-xl bg-neutral-100 animate-pulse" />
+          <div className="h-11 rounded-xl bg-neutral-200 animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-7xl p-6">
+      <div className="h-8 w-64 rounded-md bg-neutral-200 animate-pulse" />
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[0, 1, 2, 3, 4, 5].map((k) => (
+          <div key={k} className="h-40 rounded-2xl bg-neutral-100 animate-pulse" />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /* --------------------------------------------------
    Helpers
@@ -55,7 +143,7 @@ function hasToken() {
    Route Guards
 -------------------------------------------------- */
 
-function RequireAuth({ children }: { children: React.ReactNode }) {
+function RequireAuth({ children }: Readonly<{ children: React.ReactNode }>) {
   if (!hasToken()) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
@@ -63,41 +151,12 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 function RequireVerified({
   isVerified,
   children,
-}: {
+}: Readonly<{
   isVerified: boolean;
   children: React.ReactNode;
-}) {
+}>) {
   if (!isVerified) return <Navigate to="/login" replace />;
   return <>{children}</>;
-}
-
-/* --------------------------------------------------
-   Layout
--------------------------------------------------- */
-
-function AppLayout({
-  userRole,
-  onLogout,
-}: {
-  userRole: "user" | "admin";
-  onLogout: () => void;
-}) {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  return (
-    <div className="min-h-screen bg-white font-sans text-neutral-900">
-      <Navbar
-        currentPage={location.pathname}
-        onNavigate={(path) => navigate(path)}
-        userRole={userRole}
-        onLogout={onLogout}
-      />
-      <main className="pb-16">
-        <Outlet />
-      </main>
-    </div>
-  );
 }
 
 /* --------------------------------------------------
@@ -107,10 +166,10 @@ function AppLayout({
 function EditItemRoute({
   onCancel,
   onSaved,
-}: {
+}: Readonly<{
   onCancel: () => void;
   onSaved: () => void;
-}) {
+}>) {
   const { id } = useParams();
   if (!id) return <Navigate to="/items" replace />;
   return <EditItemPage itemId={id} onCancel={onCancel} onSaved={onSaved} />;
@@ -120,11 +179,11 @@ function RequestSwapRoute({
   selectedItem,
   onCancel,
   onSubmit,
-}: {
+}: Readonly<{
   selectedItem: Apparel | null;
   onCancel: () => void;
   onSubmit: () => void;
-}) {
+}>) {
   if (!selectedItem) return <Navigate to="/items" replace />;
   return (
     <RequestSwapPage
@@ -153,9 +212,10 @@ type CurrentUser = {
 
 export default function AppRoutes() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [userRole, setUserRole] = useState<"user" | "admin" | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(hasToken());
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isEmailVerified, setIsEmailVerified] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
@@ -186,20 +246,23 @@ export default function AppRoutes() {
         setCurrentUserId(u.id);
         setIsEmailVerified(u.isEmailVerified);
       } catch (err) {
+        console.error("Failed to load current user", err);
         localStorage.removeItem("token");
         setUserRole(null);
         setCurrentUserId(null);
         setIsEmailVerified(false);
         setCurrentUser(null);
         setSelectedItem(null);
-        navigate("/login", { replace: true });
+        if (location.pathname !== "/") {
+          navigate("/", { replace: true });
+        }
       } finally {
         setLoading(false); // ✅ always stop loading
       }
     };
 
     loadMe();
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   // ✅ updated signature to accept verification status
   const handleLogin = (
@@ -235,7 +298,144 @@ export default function AppRoutes() {
     setIsEmailVerified(false);
     setCurrentUser(null);
     setSelectedItem(null);
-    navigate("/login", { replace: true });
+    navigate("/", { replace: true });
+  };
+
+  const defaultAuthedPath = userRole === "admin" ? "/admin" : "/items";
+
+  const prefetchAuthPages = () => {
+    void loadLoginPage();
+    void loadRegisterPage();
+    void loadForgotPasswordPage();
+  };
+
+  const prefetchUserHome = () => {
+    void loadBrowsePage();
+    void loadWishlistHubPage();
+    void loadProductDetailsPage();
+  };
+
+  const prefetchAdminHome = () => {
+    void loadAdminLayout();
+    void loadAdminDashboard();
+    void loadAdminUsers();
+    void loadAdminItems();
+  };
+
+  const prefetchPrimaryRoute = () => {
+    if (!hasToken()) {
+      prefetchAuthPages();
+      return;
+    }
+    if (userRole === "admin") {
+      prefetchAdminHome();
+      return;
+    }
+    prefetchUserHome();
+  };
+
+  const prefetchPath = (path: string) => {
+    const exactPrefetch: Record<string, () => void> = {
+      "/": () => {
+        // Critical route is eagerly loaded.
+      },
+      "/home": () => {
+        // Critical route is eagerly loaded.
+      },
+      "/login": () => {
+        void loadLoginPage();
+      },
+      "/register": () => {
+        void loadRegisterPage();
+      },
+      "/forgot-password": () => {
+        void loadForgotPasswordPage();
+      },
+      "/reset-password": () => {
+        void loadResetPasswordPage();
+      },
+      "/verify-email": () => {
+        void loadVerifyEmailPage();
+      },
+      "/items": () => {
+        void loadBrowsePage();
+      },
+      "/items/new": () => {
+        void loadAddItemPage();
+      },
+      "/wishlist": () => {
+        void loadWishlistHubPage();
+      },
+      "/profile": () => {
+        void loadUserProfilePage();
+      },
+      "/swaps/request": () => {
+        void loadRequestSwapPage();
+      },
+      "/swaps/incoming": () => {
+        void loadIncomingRequestsPage();
+      },
+      "/swaps/outgoing": () => {
+        void loadMyRequestsPage();
+      },
+      "/swaps/history": () => {
+        void loadHistoryPage();
+      },
+      "/admin": () => {
+        void loadAdminLayout();
+        void loadAdminDashboard();
+      },
+      "/admin/": () => {
+        void loadAdminLayout();
+        void loadAdminDashboard();
+      },
+    };
+
+    const exactHandler = exactPrefetch[path];
+    if (exactHandler) {
+      exactHandler();
+      return;
+    }
+
+    if (path.startsWith("/admin/")) {
+      void loadAdminLayout();
+      const adminPrefixPrefetch: Array<{ prefix: string; load: () => void }> = [
+        { prefix: "/admin/users", load: () => void loadAdminUsers() },
+        { prefix: "/admin/items", load: () => void loadAdminItems() },
+        { prefix: "/admin/swaps", load: () => void loadAdminSwaps() },
+        { prefix: "/admin/reviews", load: () => void loadAdminReviews() },
+        { prefix: "/admin/audit-logs", load: () => void loadAdminAuditLogs() },
+      ];
+      const target = adminPrefixPrefetch.find((entry) => path.startsWith(entry.prefix));
+      if (target) {
+        target.load();
+      }
+      return;
+    }
+
+    const patternPrefetch: Array<{ test: (value: string) => boolean; load: () => void }> = [
+      {
+        test: (value) => value.startsWith("/items/") && value.endsWith("/edit"),
+        load: () => void loadEditItemPage(),
+      },
+      {
+        test: (value) => value.startsWith("/items/"),
+        load: () => void loadProductDetailsPage(),
+      },
+      {
+        test: (value) => value.startsWith("/chat/"),
+        load: () => void loadChatPage(),
+      },
+      {
+        test: (value) => value.startsWith("/swaps/") && value.endsWith("/logistics"),
+        load: () => void loadSwapLogisticsPage(),
+      },
+    ];
+
+    const dynamicTarget = patternPrefetch.find((entry) => entry.test(path));
+    if (dynamicTarget) {
+      dynamicTarget.load();
+    }
   };
 
   const handleRequestSwap = (item: Apparel) => {
@@ -252,23 +452,55 @@ export default function AppRoutes() {
     navigate(`/items/${itemId}/edit`);
   };
 
+  let adminRouteElement: React.ReactNode;
+  if (userRole === null) {
+    adminRouteElement = <div>Loading...</div>;
+  } else if (userRole === "admin") {
+    adminRouteElement = <AdminLayout />;
+  } else {
+    adminRouteElement = <Navigate to="/items" replace />;
+  }
+
   if (loading) {
     return <div className="p-6">Loading...</div>;
   }
 
   return (
-    <Routes>
-      {/* Default */}
-      <Route path="/" element={<Navigate to="/items" replace />} />
+    <Suspense fallback={<RouteSkeleton path={location.pathname} />}>
+      <Routes>
+      {/* Public home */}
+      <Route
+        path="/"
+        element={
+          <LandingPage
+            isAuthenticated={hasToken()}
+            onPrimaryAction={() =>
+              hasToken() ? navigate(defaultAuthedPath) : navigate("/register")
+            }
+            onLogin={() => navigate("/login")}
+            onRegister={() => navigate("/register")}
+            onPrimaryIntent={prefetchPrimaryRoute}
+            onLoginIntent={prefetchAuthPages}
+            onRegisterIntent={prefetchAuthPages}
+          />
+        }
+      />
+
+      <Route path="/home" element={<Navigate to="/" replace />} />
+
       {/* Public */}
       <Route
         path="/login"
         element={
-          <LoginPage
-            onLogin={handleLogin}
-            onNavigateRegister={() => navigate("/register")}
-            onForgotPassword={() => navigate("/forgot-password")}
-          />
+          hasToken() ? (
+            <Navigate to={defaultAuthedPath} replace />
+          ) : (
+            <LoginPage
+              onLogin={handleLogin}
+              onNavigateRegister={() => navigate("/register")}
+              onForgotPassword={() => navigate("/forgot-password")}
+            />
+          )
         }
       />
       <Route
@@ -280,10 +512,14 @@ export default function AppRoutes() {
       <Route
         path="/register"
         element={
-          <RegisterPage
-            onRegister={(role, id) => handleLogin(role, id, false)}
-            onNavigateLogin={() => navigate("/login")}
-          />
+          hasToken() ? (
+            <Navigate to={defaultAuthedPath} replace />
+          ) : (
+            <RegisterPage
+              onRegister={(role, id) => handleLogin(role, id, false)}
+              onNavigateLogin={() => navigate("/login")}
+            />
+          )
         }
       />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -292,7 +528,11 @@ export default function AppRoutes() {
       <Route
         element={
           <RequireAuth>
-            <AppLayout userRole={userRole || "user"} onLogout={handleLogout} />
+            <AppLayout
+              userRole={userRole || "user"}
+              onLogout={handleLogout}
+              onNavigateIntent={prefetchPath}
+            />
           </RequireAuth>
         }
       >
@@ -372,26 +612,20 @@ export default function AppRoutes() {
         {/* Admin */}
         <Route
           path="/admin/*"
-          element={
-            userRole === null ? (
-              <div>Loading...</div>
-            ) : userRole === "admin" ? (
-              <AdminLayout />
-            ) : (
-              <Navigate to="/items" replace />
-            )
-          }
+          element={adminRouteElement}
         >
           <Route index element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="items" element={<AdminItems />} />
           <Route path="swaps" element={<AdminSwaps />} />
           <Route path="reviews" element={<AdminReviews />} />
+          <Route path="audit-logs" element={<AdminAuditLogs />} />
         </Route>
       </Route>{" "}
       {/* ✅ THIS CLOSES THE PROTECTED ROUTE */}
       {/* Fallback */}
-      <Route path="*" element={<Navigate to="/items" replace />} />
-    </Routes>
+      <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }

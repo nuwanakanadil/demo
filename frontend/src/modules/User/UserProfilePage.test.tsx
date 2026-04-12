@@ -22,6 +22,11 @@ jest.mock("../../api/auth.api", () => ({
   deleteMe: jest.fn(),
 }));
 
+jest.mock("../../api/notification.api", () => ({
+  getMyNotifications: jest.fn().mockResolvedValue([]),
+  markNotificationRead: jest.fn(),
+}));
+
 // ✅ MOCK CHILD COMPONENT
 jest.mock("./MyItemsSection", () => ({
   MyItemsSection: () => <div>My Items Section</div>,
@@ -29,6 +34,7 @@ jest.mock("./MyItemsSection", () => ({
 
 const chatApi = require("../../api/chat.api");
 const authApi = require("../../api/auth.api");
+const notificationApi = require("../../api/notification.api");
 
 // ✅ TEST USER
 const mockUser = {
@@ -50,16 +56,22 @@ function renderComponent() {
 describe("UserProfilePage", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    chatApi.listMyConversations.mockResolvedValue({ data: [] });
+    notificationApi.getMyNotifications.mockResolvedValue([]);
   });
 
   /* ----------------------------------
      RENDER USER INFO
   ---------------------------------- */
-  test("should render user details", () => {
+  test("should render user details", async () => {
     renderComponent();
 
-    expect(screen.getByText("John Doe")).toBeInTheDocument();
-    expect(screen.getByText("john@test.com")).toBeInTheDocument();
+    await screen.findByText(/No conversations/i);
+
+    expect(
+      screen.getByRole("heading", { name: /John Doe/i })
+    ).toBeInTheDocument();
+    expect(screen.getByText("john@test.com", { selector: "dd" })).toBeInTheDocument();
     expect(screen.getByText("USER")).toBeInTheDocument();
   });
 

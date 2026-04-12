@@ -1,10 +1,13 @@
 const mongoose = require("mongoose");
 const Swap = require("./swap.model");
 const Apparel = require("../apparel/apparel.model");
+const OwnerReview = require("../review/ownerReview.model");
 
 const Logistics = require("../logistics/logistics.model");
 
 const { createNotification } = require("../notification/notification.service");
+
+const PENDING_EXPIRY_DAYS = 7;
 
 
 function forbidden(msg) {
@@ -23,6 +26,49 @@ function notFound(msg) {
   return err;
 }
 
+async function expireStalePendingSwaps() {
+  const cutoff = new Date(Date.now() - PENDING_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+  await Swap.updateMany(
+    { status: "PENDING", createdAt: { $lt: cutoff } },
+    { $set: { status: "EXPIRED" } },
+  );
+}
+
+function normalizeSize(value) {
+  return String(value || "").trim().toUpperCase();
+}
+
+function normalizeCondition(value) {
+  const map = { NEW: 5, LIKE_NEW: 4, GOOD: 3, FAIR: 2, WORN: 1 };
+  return map[String(value || "").toUpperCase()] || 0;
+}
+
+function calculateCompatibilityScore(requestedItem, offeredItem) {
+  let score = 0;
+
+  // Category affinity
+  if (requestedItem?.category && offeredItem?.category) {
+    score += requestedItem.category === offeredItem.category ? 35 : 10;
+  }
+
+  // Size affinity
+  const requestedSize = normalizeSize(requestedItem?.size);
+  const offeredSize = normalizeSize(offeredItem?.size);
+  if (requestedSize && offeredSize) {
+    score += requestedSize === offeredSize ? 30 : 8;
+  }
+
+  // Condition proximity
+  const requestedCond = normalizeCondition(requestedItem?.condition);
+  const offeredCond = normalizeCondition(offeredItem?.condition);
+  if (requestedCond && offeredCond) {
+    const diff = Math.abs(requestedCond - offeredCond);
+    score += Math.max(5, 35 - diff * 8);
+  }
+
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
 /**
  * CREATE SWAP
  * - requester cannot request own item
@@ -36,6 +82,8 @@ async function createSwap({
   offeredItemId,
   message,
 }) {
+  await expireStalePendingSwaps();
+
   if (!requestedItemId || !offeredItemId) {
     throw badRequest("requestedItemId and offeredItemId are required.");
   }
@@ -74,6 +122,26 @@ async function createSwap({
   if (existing)
     throw badRequest("You already have a pending swap request for this item.");
 
+  const existingPair = await Swap.findOne({
+    requester: requesterId,
+    requestedItem: requestedItemId,
+    offeredItem: offeredItemId,
+    status: "PENDING",
+  });
+  if (existingPair) {
+    throw badRequest("You already sent this exact swap request and it is still pending.");
+  }
+
+  const pendingFromOfferedItem = await Swap.countDocuments({
+    requester: requesterId,
+    offeredItem: offeredItemId,
+    status: "PENDING",
+  });
+
+  if (pendingFromOfferedItem >= 3) {
+    throw badRequest("You already have 3 active requests using this offered item. Wait for responses first.");
+  }
+
   const swap = await Swap.create({
     requester: requesterId,
     owner: requestedItem.owner,
@@ -95,14 +163,76 @@ async function createSwap({
 }
 
 async function getIncoming(ownerId) {
-  return Swap.find({ owner: ownerId })
+  await expireStalePendingSwaps();
+
+  const swaps = await Swap.find({ owner: ownerId })
     .populate("requester", "name email")
     .populate("requestedItem")
     .populate("offeredItem")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const requesterIds = [...new Set(swaps.map((s) => String(s.requester?._id)).filter(Boolean))];
+  if (requesterIds.length === 0) return swaps;
+
+  // Guard against malformed requester ids from legacy/corrupted records.
+  const requesterObjectIds = requesterIds
+    .filter((id) => mongoose.Types.ObjectId.isValid(id))
+    .map((id) => new mongoose.Types.ObjectId(id));
+
+  if (requesterObjectIds.length === 0) return swaps;
+
+  const [swapStats, ratingStats] = await Promise.all([
+    Swap.aggregate([
+      { $match: { requester: { $in: requesterObjectIds } } },
+      {
+        $group: {
+          _id: "$requester",
+          total: { $sum: 1 },
+          completed: { $sum: { $cond: [{ $eq: ["$status", "COMPLETED"] }, 1, 0] } },
+          rejected: { $sum: { $cond: [{ $eq: ["$status", "REJECTED"] }, 1, 0] } },
+          cancelled: { $sum: { $cond: [{ $in: ["$status", ["CANCELLED", "EXPIRED"]] }, 1, 0] } },
+        },
+      },
+    ]),
+    OwnerReview.aggregate([
+      { $match: { revieweeId: { $in: requesterObjectIds } } },
+      {
+        $group: {
+          _id: "$revieweeId",
+          avgRating: { $avg: "$rating" },
+          reviewsCount: { $sum: 1 },
+        },
+      },
+    ]),
+  ]);
+
+  const statsMap = new Map(swapStats.map((x) => [String(x._id), x]));
+  const ratingsMap = new Map(ratingStats.map((x) => [String(x._id), x]));
+
+  return swaps.map((swap) => {
+    const requesterId = String(swap.requester?._id || "");
+    const s = statsMap.get(requesterId) || { total: 0, completed: 0, rejected: 0, cancelled: 0 };
+    const r = ratingsMap.get(requesterId) || { avgRating: 0, reviewsCount: 0 };
+
+    return {
+      ...swap,
+      compatibilityScore: calculateCompatibilityScore(swap.requestedItem, swap.offeredItem),
+      requesterTrust: {
+        totalSwaps: s.total,
+        completionRate: s.total ? Math.round((s.completed / s.total) * 100) : 0,
+        rejectRate: s.total ? Math.round((s.rejected / s.total) * 100) : 0,
+        cancelRate: s.total ? Math.round((s.cancelled / s.total) * 100) : 0,
+        avgRating: Number((r.avgRating || 0).toFixed(1)),
+        reviewsCount: r.reviewsCount || 0,
+      },
+    };
+  });
 }
 
 async function getOutgoing(requesterId) {
+  await expireStalePendingSwaps();
+
   return Swap.find({ requester: requesterId })
     .populate("owner", "name email")
     .populate("requestedItem")
@@ -249,6 +379,8 @@ async function updateLogistics({
  * - cancel other pending swaps for the same requestedItem
  */
 async function acceptSwap({ swapId, ownerId }) {
+  await expireStalePendingSwaps();
+
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -327,6 +459,8 @@ async function acceptSwap({ swapId, ownerId }) {
  * - must be PENDING
  */
 async function rejectSwap({ swapId, ownerId }) {
+  await expireStalePendingSwaps();
+
   const swap = await Swap.findById(swapId);
   if (!swap) throw notFound("Swap request not found.");
 

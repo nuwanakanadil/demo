@@ -12,6 +12,9 @@ interface RequestSwapPageProps {
   onSubmit: () => void;
 }
 
+const CONTROL_CLASS =
+  "w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-700 outline-none transition-all focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30";
+
 export function RequestSwapPage({ targetItem, onCancel, onSubmit }: RequestSwapPageProps) {
   const [myItems, setMyItems] = useState<Apparel[]>([]);
   const [selectedOfferId, setSelectedOfferId] = useState<string>("");
@@ -143,7 +146,7 @@ export function RequestSwapPage({ targetItem, onCancel, onSubmit }: RequestSwapP
                 Message (Optional)
               </label>
               <textarea
-                className="w-full rounded-md border border-gray-300 p-3 text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                className={CONTROL_CLASS}
                 rows={3}
                 placeholder="Hi! I'd love to swap my item for yours..."
                 value={message}

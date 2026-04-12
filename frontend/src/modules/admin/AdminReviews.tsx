@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
 import { Button } from "../../components/ui/Button";
-import { Search, Star, MessagesSquare, Trash2, UserCircle, PackageSearch } from "lucide-react";
+import { TablePagination } from "../../components/ui/TablePagination";
+import { TextSearchInput } from "../../components/ui/TextSearchInput";
+import { StateDisplay } from "../../components/ui/StateDisplay";
+import { AdminDialog } from "../../components/ui/AdminDialog";
+import { Star, MessagesSquare, Trash2, UserCircle, PackageSearch } from "lucide-react";
 
 interface Review {
   _id: string;
@@ -25,11 +29,15 @@ interface Review {
   } | null;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 export default function AdminReviews() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   // ---------------- FETCH REVIEWS ----------------
   const fetchReviews = async () => {
@@ -53,12 +61,6 @@ export default function AdminReviews() {
 
   // ---------------- DELETE WITH CONFIRM ----------------
   const deleteReview = async (id: string) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this review? This cannot be undone."
-    );
-
-    if (!confirmDelete) return;
-
     try {
       await api.delete(`/admin/reviews/${id}`);
       fetchReviews();
@@ -73,6 +75,17 @@ export default function AdminReviews() {
       review.itemId?.title?.toLowerCase().includes(search.toLowerCase()) ||
       review.reviewerId?.email?.toLowerCase().includes(search.toLowerCase()) ||
       review.revieweeId?.email?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredReviews.length / ITEMS_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedReviews = filteredReviews.slice(
+    (safePage - 1) * ITEMS_PER_PAGE,
+    safePage * ITEMS_PER_PAGE
   );
 
   return (
@@ -94,26 +107,18 @@ export default function AdminReviews() {
       <div className="bg-white rounded-3xl border border-neutral-100 shadow-sm overflow-hidden">
         {/* ================= SEARCH BAR ================= */}
         <div className="p-6 border-b border-neutral-100 bg-neutral-50/50">
-          <div className="relative max-w-md">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-neutral-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search by item name or email..."
-              className="pl-12 pr-4 py-3 w-full bg-white border border-neutral-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow shadow-sm outline-none"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+          <TextSearchInput
+            placeholder="Search by item name or email..."
+            value={search}
+            onChange={setSearch}
+            className="max-w-md min-w-0"
+          />
         </div>
 
         {/* ================= TABLE ================= */}
         <div className="overflow-x-auto">
           {loading ? (
-             <div className="flex justify-center p-12">
-               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
-             </div>
+            <StateDisplay type="loading" title="Loading reviews..." />
           ) : (
             <table className="w-full text-sm text-left">
               <thead className="bg-neutral-50 text-neutral-500 uppercase tracking-wider text-xs font-semibold">
@@ -129,14 +134,17 @@ export default function AdminReviews() {
                 {filteredReviews.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center justify-center text-neutral-400 space-y-2">
-                        <MessagesSquare className="w-12 h-12 stroke-[1.5]" />
-                        <p className="text-base font-medium">No reviews found</p>
-                      </div>
+                      <StateDisplay
+                        type="empty"
+                        title="No reviews found"
+                        description="Try another search term."
+                        icon={<MessagesSquare className="w-12 h-12 stroke-[1.5] text-neutral-300" />}
+                        className="py-0"
+                      />
                     </td>
                   </tr>
                 ) : (
-                  filteredReviews.map((review) => (
+                  paginatedReviews.map((review) => (
                     <tr key={review._id} className="hover:bg-brand-50/50 transition-colors group">
                       
                       <td className="px-6 py-4">
@@ -145,6 +153,8 @@ export default function AdminReviews() {
                             <img 
                               src={review.itemId.images[0].url} 
                               alt={review.itemId?.title || "Item"} 
+                              loading="lazy"
+                              decoding="async"
                               className="w-10 h-10 rounded-lg object-cover border border-neutral-200 shadow-sm"
                             />
                           ) : (
@@ -195,7 +205,7 @@ export default function AdminReviews() {
                         <Button
                           variant="danger"
                           className="opacity-0 group-hover:opacity-100 transition-opacity bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 shadow-sm p-2 h-auto rounded-xl"
-                          onClick={() => deleteReview(review._id)}
+                          onClick={() => setDeleteTargetId(review._id)}
                           title="Delete Review"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -208,7 +218,43 @@ export default function AdminReviews() {
             </table>
           )}
         </div>
+
+        <TablePagination
+          currentPage={safePage}
+          totalPages={totalPages}
+          totalItems={filteredReviews.length}
+          itemsPerPage={ITEMS_PER_PAGE}
+          onPageChange={setCurrentPage}
+        />
       </div>
+
+      {deleteTargetId && (
+        <AdminDialog
+          open={Boolean(deleteTargetId)}
+          onClose={() => setDeleteTargetId(null)}
+          title="Delete review"
+          subtitle="This action cannot be undone."
+          tone="danger"
+          size="sm"
+          footer={
+            <div className="flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => setDeleteTargetId(null)} className="rounded-xl">Cancel</Button>
+              <Button
+                variant="danger"
+                className="rounded-xl"
+                onClick={async () => {
+                  await deleteReview(deleteTargetId);
+                  setDeleteTargetId(null);
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          }
+        >
+          <p className="text-sm text-neutral-600">Are you sure you want to permanently remove this review?</p>
+        </AdminDialog>
+      )}
     </div>
   );
 }

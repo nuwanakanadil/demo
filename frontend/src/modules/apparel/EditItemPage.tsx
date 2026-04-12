@@ -39,6 +39,8 @@ const SIZES = [
   "US 11",
   "One Size",
 ];
+const SELECT_CLASS =
+  "flex h-11 w-full rounded-[12px] border border-neutral-300 bg-white/70 backdrop-blur-sm px-3.5 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent focus:shadow-[0_0_0_4px_rgba(66,145,114,0.14)] transition-all";
 
 /* --------------------------------------------------
    ENUM MAPPING (UI -> API)
@@ -275,7 +277,7 @@ export function EditItemPage({ itemId, onCancel, onSaved }: Props) {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as any)}
-                className="flex h-10 w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+                className={SELECT_CLASS}
               >
                 {CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
@@ -293,7 +295,7 @@ export function EditItemPage({ itemId, onCancel, onSaved }: Props) {
               <select
                 value={size}
                 onChange={(e) => setSize(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+                className={SELECT_CLASS}
               >
                 {SIZES.map((s) => (
                   <option key={s} value={s}>

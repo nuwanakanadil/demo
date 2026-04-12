@@ -26,6 +26,8 @@ function StatusBadge({ status }: { status: SwapRequest["status"] }) {
       return <Badge variant="success">Completed</Badge>;
     case "cancelled":
       return <Badge variant="default">Cancelled</Badge>;
+    case "expired":
+      return <Badge variant="default">Expired</Badge>;
     default:
       return <Badge variant="warning">Pending</Badge>;
   }
@@ -43,6 +45,7 @@ export function SwapRequestCard({
   const isAccepted = request.status === "accepted";
   const isRejected = request.status === "rejected";
   const isCompleted = request.status === "completed";
+  const isExpired = request.status === "expired";
 
   const subtitle =
     type === "incoming"
@@ -130,6 +133,30 @@ export function SwapRequestCard({
             <span className="text-gray-700">{request.message}</span>
           </div>
         )}
+
+        {/* Swap quality + trust signals */}
+        {type === "incoming" && (
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="rounded-lg border border-neutral-200 bg-white p-3">
+              <p className="text-[11px] uppercase tracking-wide text-gray-500">Compatibility</p>
+              <p className="text-sm font-bold text-gray-900 mt-1">
+                {typeof request.compatibilityScore === "number" ? `${request.compatibilityScore}%` : "N/A"}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-neutral-200 bg-white p-3">
+              <p className="text-[11px] uppercase tracking-wide text-gray-500">Requester Trust</p>
+              {request.requesterTrust ? (
+                <div className="mt-1 text-xs text-gray-700 space-y-1">
+                  <p>Completion: <span className="font-semibold">{request.requesterTrust.completionRate}%</span></p>
+                  <p>Avg rating: <span className="font-semibold">{request.requesterTrust.avgRating}</span> ({request.requesterTrust.reviewsCount})</p>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1">No trust data yet</p>
+              )}
+            </div>
+          </div>
+        )}
       </CardContent>
 
       {/* Actions: Incoming + Pending */}
@@ -195,6 +222,12 @@ export function SwapRequestCard({
       {type === "incoming" && isRejected && (
         <CardFooter className="bg-gray-50 p-4 flex justify-end border-t border-gray-100">
           <span className="text-sm text-gray-500">No action required</span>
+        </CardFooter>
+      )}
+
+      {type === "incoming" && isExpired && (
+        <CardFooter className="bg-gray-50 p-4 flex justify-end border-t border-gray-100">
+          <span className="text-sm text-gray-500">Request expired due to inactivity</span>
         </CardFooter>
       )}
     </Card>

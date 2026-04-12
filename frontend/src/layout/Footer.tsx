@@ -1,14 +1,30 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { Globe, Camera, MessageCircle } from "lucide-react";
 
 export function Footer() {
+  const location = useLocation();
+  const hiddenPaths = [
+    "/admin",
+    "/login",
+    "/register",
+    "/forgot-password",
+    "/reset-password",
+    "/verify-email",
+  ];
+
+  // Hide footer on admin and auth-related routes.
+  if (hiddenPaths.some((path) => location.pathname.startsWith(path))) {
+    return null;
+  }
+
   return (
-    <footer className="mt-16 border-t border-emerald-200 bg-gradient-to-br from-green-50 via-emerald-50 to-green-100">
+    <footer className="mt-0 border-t border-white/70 bg-[radial-gradient(circle_at_10%_0%,rgba(66,145,114,0.16),transparent_42%),linear-gradient(145deg,#f7f8fb,#eef1f6)] backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
 
           {/* Brand Section */}
           <div>
-            <h2 className="text-xl font-extrabold text-gray-900">
+            <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">
               ReWear
             </h2>
             <p className="mt-3 text-sm text-gray-600 leading-relaxed">
@@ -18,22 +34,31 @@ export function Footer() {
 
             <div className="mt-4 flex gap-3">
               <a
-                href="#"
-                className="h-9 w-9 flex items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 hover:bg-brand-50 transition"
+                href="https://www.facebook.com"
+                aria-label="Facebook"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-9 w-9 flex items-center justify-center rounded-lg border border-white/70 bg-white/70 hover:bg-white transition"
               >
-                <span className="text-sm font-bold text-gray-700">F</span>
+                <Globe className="h-4 w-4 text-gray-700" />
               </a>
               <a
-                href="#"
-                className="h-9 w-9 flex items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 hover:bg-brand-50 transition"
+                href="https://www.instagram.com"
+                aria-label="Instagram"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-9 w-9 flex items-center justify-center rounded-lg border border-white/70 bg-white/70 hover:bg-white transition"
               >
-                <span className="text-sm font-bold text-gray-700">I</span>
+                <Camera className="h-4 w-4 text-gray-700" />
               </a>
               <a
-                href="#"
-                className="h-9 w-9 flex items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 hover:bg-brand-50 transition"
+                href="https://x.com"
+                aria-label="Twitter"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-9 w-9 flex items-center justify-center rounded-lg border border-white/70 bg-white/70 hover:bg-white transition"
               >
-                <span className="text-sm font-bold text-gray-700">T</span>
+                <MessageCircle className="h-4 w-4 text-gray-700" />
               </a>
             </div>
           </div>

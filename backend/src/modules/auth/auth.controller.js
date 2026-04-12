@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("./auth.model");
-const crypto = require("crypto");
+const crypto = require("node:crypto");
 const { sendVerifyEmail, sendWelcomeEmail, sendPasswordResetEmail } = require("../../utils/mailer");
 
 /* --------------------------------------------------
@@ -366,7 +366,7 @@ exports.updateMe = async (req, res, next) => {
     const updates = {};
 
     // Update name if provided
-    if (name && name.trim()) updates.name = name.trim();
+    if (name?.trim()) updates.name = name.trim();
 
     // Optional password change
     if (newPassword || confirmPassword) {
@@ -395,12 +395,12 @@ exports.updateMe = async (req, res, next) => {
     }
 
     const user = await User.findById(userId).select("+password");
-    if (!user)
+    if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
+    }
 
     if (updates.name) user.name = updates.name;
     if (updates.password) user.password = updates.password;
-
     await user.save(); // triggers password hashing in schema
 
     res.json({

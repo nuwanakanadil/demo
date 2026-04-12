@@ -37,7 +37,14 @@ export function VerifyEmailPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-brand-50 px-4">
       <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border border-brand-100 text-center space-y-4">
-        <img src="/logo.png" alt="ReWear" className="mx-auto h-14 w-auto" />
+        <img
+          src="/logo.png"
+          alt="ReWear"
+          width={224}
+          height={56}
+          decoding="async"
+          className="mx-auto h-14 w-auto"
+        />
 
         <h2 className="text-2xl font-bold text-gray-900">Email Verification</h2>
 

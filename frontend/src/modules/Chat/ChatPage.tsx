@@ -17,18 +17,6 @@ import { API_BASE_URL } from "../../utils/env";
 const SOCKET_URL = API_BASE_URL.replace("/api", "");
 
 /* --------------------------------------------------
-   SOCKET SERVER URL
-   - Reads from VITE_API_BASE_URL if available
-   - Removes "/api" because socket server runs on same backend base
-   - Fallback to localhost for development
--------------------------------------------------- */
-//commented the below code sgment to run the test case
-
-// const SOCKET_URL = import.meta.env.VITE_API_BASE_URL
-//   ? import.meta.env.VITE_API_BASE_URL.replace("/api", "")
-//   : "http://localhost:5000";
-
-/* --------------------------------------------------
    UI MESSAGE TYPE
    - Extends backend Message type
    - Adds "pending" flag for optimistic UI while sending
@@ -38,7 +26,11 @@ type UiMessage = Message & { pending?: boolean };
 export function ChatPage() {
   /* --------------------------------------------------
      ROUTE PARAMS
-     - itemId: item that chat belongs to
+  const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<UiMessage[]>([]);
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(true);
      - ownerId: user id of item owner (other user in conversation)
   -------------------------------------------------- */
   const { itemId, ownerId } = useParams();
@@ -293,102 +285,117 @@ export function ChatPage() {
     }
   };
 
-  return (
-    <div className="min-h-[calc(100vh-64px)] bg-white">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6">
-        {/* --------------------------------------------------
-            TOP HEADER BAR
-            - Back button
-            - Shows itemId + ownerId for debugging / context
-          -------------------------------------------------- */}
-        <div className="mb-4 rounded-xl border border-brand-100 bg-white shadow-lg p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
-            </Button>
+  let messagesContent: React.ReactNode;
+  if (loading) {
+    messagesContent = (
+      <div className="py-16 text-center text-neutral-500">
+        Loading chat...
+      </div>
+    );
+  } else if (messages.length === 0) {
+    messagesContent = (
+      <div className="py-16 text-center text-neutral-500">
+        No messages yet. Say hi 👋
+      </div>
+    );
+  } else {
+    messagesContent = (
+      <div className="space-y-4">
+        {messages.map((m) => {
+          // Determines if message is mine (align right) or other user (align left)
+          const isMine = !!myUserId && m.senderId === myUserId;
 
-            <div>
-              <div className="text-sm font-semibold text-gray-900">Chat</div>
-              <div className="text-xs text-gray-600">
-                Item: <span className="font-mono">{itemId}</span> • Owner:{" "}
-                <span className="font-mono">{ownerId}</span>
+          return (
+            <div
+              key={m._id}
+              className={`flex ${
+                isMine ? "justify-end" : "justify-start"
+              }`}
+            >
+              {/* Message bubble */}
+              <div
+                className={`max-w-[78%] rounded-[24px] px-4 py-3 text-sm shadow-[0_10px_30px_-22px_rgba(15,23,42,0.45)] border ${
+                  isMine
+                    ? "bg-gradient-to-br from-[#2f6e54] to-[#429172] border-transparent text-white"
+                    : "bg-white/95 border-neutral-200 text-neutral-900"
+                }`}
+              >
+                <div className={isMine ? "text-white" : "text-neutral-900"}>
+                  {m.text}
+                </div>
+
+                {/* Meta row: pending + timestamp */}
+                <div
+                  className={`mt-1 flex items-center justify-end gap-2 text-[11px] ${
+                    isMine ? "text-white/80" : "text-gray-500"
+                  }`}
+                >
+                  {m.pending && (
+                    <span className="opacity-80">Sending…</span>
+                  )}
+                  <span>
+                    {new Date(m.createdAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Bottom anchor for auto-scroll */}
+        <div ref={bottomRef} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-[calc(100vh-64px)] bg-[radial-gradient(circle_at_top,_rgba(66,145,114,0.10),_transparent_35%),linear-gradient(180deg,_#f7fbf8_0%,_#ffffff_40%,_#f5f8f6_100%)]">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <div className="mb-4 rounded-[28px] border border-white/75 bg-white/85 p-4 shadow-[0_20px_60px_-34px_rgba(15,23,42,0.35)] backdrop-blur-xl sm:p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
+              </Button>
+
+              <div>
+                <div className="text-sm font-semibold text-neutral-900">
+                  Chat
+                </div>
+                <div className="text-xs text-neutral-500">
+                  Item: <span className="font-mono">{itemId}</span> • Owner: <span className="font-mono">{ownerId}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* --------------------------------------------------
-            CHAT CARD
-            - Top: messages list
-            - Bottom: input area
-          -------------------------------------------------- */}
-        <div className="rounded-xl border border-brand-100 bg-white shadow-lg overflow-hidden">
-          {/* MESSAGES PANEL */}
-          <div className="h-[60vh] sm:h-[65vh] overflow-y-auto bg-brand-50 p-4">
-            {loading ? (
-              <div className="py-16 text-center text-gray-500">
-                Loading chat...
+        <div className="overflow-hidden rounded-[32px] border border-white/75 bg-white/82 shadow-[0_24px_80px_-44px_rgba(15,23,42,0.38)] backdrop-blur-xl">
+          <div className="border-b border-neutral-200/70 bg-gradient-to-r from-white/90 to-neutral-50/90 px-4 py-3 sm:px-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-neutral-900">Conversation</h2>
+                <p className="text-xs text-neutral-500">
+                  Messages update automatically as you chat.
+                </p>
               </div>
-            ) : messages.length === 0 ? (
-              <div className="py-16 text-center text-gray-500">
-                No messages yet. Say hi 👋
+
+              <div className="inline-flex items-center rounded-full border border-brand-100 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
+                {messages.length} messages
               </div>
-            ) : (
-              <div className="space-y-3">
-                {messages.map((m) => {
-                  // Determines if message is mine (align right) or other user (align left)
-                  const isMine = !!myUserId && m.senderId === myUserId;
-
-                  return (
-                    <div
-                      key={m._id}
-                      className={`flex ${
-                        isMine ? "justify-end" : "justify-start"
-                      }`}
-                    >
-                      {/* Message bubble */}
-                      <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm shadow-sm border ${
-                          isMine
-                            ? "bg-brand-600 border-brand-600 text-white"
-                            : "bg-white border-neutral-200 text-gray-900"
-                        }`}
-                      >
-                        <div className={isMine ? "text-white" : "text-gray-900"}>
-                          {m.text}
-                        </div>
-
-                        {/* Meta row: pending + timestamp */}
-                        <div
-                          className={`mt-1 flex items-center justify-end gap-2 text-[11px] ${
-                            isMine ? "text-white/80" : "text-gray-500"
-                          }`}
-                        >
-                          {m.pending && (
-                            <span className="opacity-80">Sending…</span>
-                          )}
-                          <span>
-                            {new Date(m.createdAt).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Scroll anchor */}
-                <div ref={bottomRef} />
-              </div>
-            )}
+            </div>
           </div>
 
-          {/* INPUT PANEL */}
-          <div className="border-t border-neutral-200 bg-white p-3">
-            <div className="flex items-center gap-2">
+          <div className="h-[62vh] overflow-y-auto bg-[linear-gradient(180deg,_rgba(247,251,248,0.9),_rgba(255,255,255,1))] p-4 sm:h-[66vh] sm:p-6">
+            {messagesContent}
+          </div>
+
+          <div className="border-t border-neutral-200/70 bg-white/95 p-3 sm:p-4">
+            <div className="flex items-center gap-2 rounded-[22px] border border-neutral-200/80 bg-white px-3 py-3 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.3)]">
               <Input
                 id="message"
                 type="text"
@@ -397,14 +404,14 @@ export function ChatPage() {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => {
-                  // Allow Enter key to send messages quickly
                   if (e.key === "Enter") handleSend();
                 }}
-                className="flex-1"
+                className="flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
               />
 
               <Button
                 variant="primary"
+                size="md"
                 onClick={handleSend}
                 disabled={!text.trim() || !myUserId}
               >

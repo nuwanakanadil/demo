@@ -12,7 +12,7 @@ export interface SwapApiItem {
 
 export interface SwapApi {
   _id: string;
-  status: "PENDING" | "ACCEPTED" | "REJECTED" | "COMPLETED" | "CANCELLED";
+  status: "PENDING" | "ACCEPTED" | "REJECTED" | "COMPLETED" | "CANCELLED" | "EXPIRED";
   message?: string;
   createdAt: string;
   requester: { _id: string; name: string; email?: string };
@@ -32,6 +32,15 @@ export interface SwapApi {
     lastUpdatedBy?: { _id?: string; name?: string };
     lastUpdatedAt?: string;
   };
+  compatibilityScore?: number;
+  requesterTrust?: {
+    totalSwaps: number;
+    completionRate: number;
+    rejectRate: number;
+    cancelRate: number;
+    avgRating: number;
+    reviewsCount: number;
+  };
 }
 
 function mapStatus(status: SwapApi["status"]): SwapRequest["status"] {
@@ -44,6 +53,8 @@ function mapStatus(status: SwapApi["status"]): SwapRequest["status"] {
       return "completed";
     case "CANCELLED":
       return "cancelled";
+    case "EXPIRED":
+      return "expired";
     default:
       return "pending";
   }
@@ -74,6 +85,8 @@ export function mapSwapApiToUi(s: SwapApi): SwapRequest {
     status: mapStatus(s.status),
     message: s.message || "",
     createdAt: s.createdAt,
+    compatibilityScore: s.compatibilityScore,
+    requesterTrust: s.requesterTrust,
   };
 }
 

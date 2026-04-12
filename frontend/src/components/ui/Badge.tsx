@@ -11,11 +11,11 @@ export function Badge({
   className
 }: BadgeProps) {
   const variants = {
-    default: 'bg-neutral-100 text-neutral-800',
-    success: 'bg-green-100 text-green-800',
-    warning: 'bg-yellow-100 text-yellow-800',
-    error: 'bg-red-100 text-red-800',
-    outline: 'border border-neutral-200 text-neutral-600'
+    default: 'bg-white/70 text-neutral-800 border border-white/80 backdrop-blur-sm',
+    success: 'bg-[#e8f8ef] text-[#1e8e4b] border border-[#c9edd8]',
+    warning: 'bg-[#fff5e6] text-[#b27311] border border-[#f7e2b9]',
+    error: 'bg-[#ffecec] text-[#c43d3d] border border-[#ffd0d0]',
+    outline: 'border border-neutral-300 text-neutral-600 bg-white/55 backdrop-blur-sm'
   };
   return (
     <span

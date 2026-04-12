@@ -48,6 +48,15 @@ playwright/.cache/
 # Postman
 .postman/
 
+# Lighthouse
+.lighthouse/
+
+# Temporary files
+.tmp/
+
+# Postman
+.postman/
+
 # Local env files
 .env.local
 .env.*.local

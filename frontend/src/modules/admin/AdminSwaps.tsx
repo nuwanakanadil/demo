@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import api from "../../api/axios";
 import { Button } from "../../components/ui/Button";
-import { Search, Repeat, ArrowRightLeft, Clock, CheckCircle2, Ban, X, Image as ImageIcon, UserCircle } from "lucide-react";
+import { TablePagination } from "../../components/ui/TablePagination";
+import { TextSearchInput } from "../../components/ui/TextSearchInput";
+import { StateDisplay } from "../../components/ui/StateDisplay";
+import { Repeat, ArrowRightLeft, Clock, CheckCircle2, Ban, X, Image as ImageIcon, UserCircle } from "lucide-react";
 
 interface Swap {
   _id: string;
@@ -28,17 +32,31 @@ interface Swap {
   createdAt: string;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 export default function AdminSwaps() {
+  const location = useLocation();
   const [swaps, setSwaps] = useState<Swap[]>([]);
   const [selectedSwap, setSelectedSwap] = useState<Swap | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   // ---------------- FETCH SWAPS ----------------
   const fetchSwaps = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/admin/swaps?limit=1000");
+      const params = new URLSearchParams(location.search);
+      const status = params.get("status");
+      const stage = params.get("stage");
+
+      const res = await api.get("/admin/swaps", {
+        params: {
+          limit: 1000,
+          ...(status ? { status } : {}),
+          ...(stage ? { stage } : {}),
+        },
+      });
       setSwaps(res.data?.data || []);
     } catch (err) {
       console.error(err);
@@ -50,13 +68,24 @@ export default function AdminSwaps() {
 
   useEffect(() => {
     fetchSwaps();
-  }, []);
+  }, [location.search]);
 
   // ---------------- FILTER ----------------
   const filteredSwaps = swaps.filter(
     (swap) =>
       swap.requester?.email?.toLowerCase().includes(search.toLowerCase()) ||
       swap.owner?.email?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSwaps.length / ITEMS_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedSwaps = filteredSwaps.slice(
+    (safePage - 1) * ITEMS_PER_PAGE,
+    safePage * ITEMS_PER_PAGE
   );
 
   const getStatusConfig = (status: string) => {
@@ -75,32 +104,29 @@ export default function AdminSwaps() {
         <div>
           <h1 className="text-3xl font-extrabold text-neutral-900 tracking-tight">Swap Requests</h1>
           <p className="text-neutral-500 mt-1">Review user swap activities and their current status.</p>
+          {(new URLSearchParams(location.search).get("status") || new URLSearchParams(location.search).get("stage")) && (
+            <p className="mt-2 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+              Filter active: {new URLSearchParams(location.search).get("stage") || new URLSearchParams(location.search).get("status")}
+            </p>
+          )}
         </div>
       </div>
 
       <div className="bg-white rounded-3xl border border-neutral-100 shadow-sm overflow-hidden">
         {/* SEARCH BAR */}
         <div className="p-6 border-b border-neutral-100 bg-neutral-50/50">
-          <div className="relative max-w-md">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-neutral-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search swaps by user emails..."
-              className="pl-12 pr-4 py-3 w-full bg-white border border-neutral-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow shadow-sm outline-none"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+          <TextSearchInput
+            placeholder="Search swaps by user emails..."
+            value={search}
+            onChange={setSearch}
+            className="max-w-md min-w-0"
+          />
         </div>
 
         {/* TABLE */}
         <div className="overflow-x-auto">
           {loading ? (
-             <div className="flex justify-center p-12">
-               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
-             </div>
+            <StateDisplay type="loading" title="Loading swaps..." />
           ) : (
             <table className="w-full text-sm text-left">
               <thead className="bg-neutral-50 text-neutral-500 uppercase tracking-wider text-xs font-semibold">
@@ -116,14 +142,17 @@ export default function AdminSwaps() {
                 {filteredSwaps.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center justify-center text-neutral-400 space-y-2">
-                        <Repeat className="w-12 h-12 stroke-[1.5]" />
-                        <p className="text-base font-medium">No swaps found</p>
-                      </div>
+                      <StateDisplay
+                        type="empty"
+                        title="No swaps found"
+                        description="Try another search term or clear filters."
+                        icon={<Repeat className="w-12 h-12 stroke-[1.5] text-neutral-300" />}
+                        className="py-0"
+                      />
                     </td>
                   </tr>
                 ) : (
-                  filteredSwaps.map((swap) => {
+                  paginatedSwaps.map((swap) => {
                     const StatusIcon = getStatusConfig(swap.status).icon;
                     const statusConfig = getStatusConfig(swap.status);
                     
@@ -177,6 +206,14 @@ export default function AdminSwaps() {
             </table>
           )}
         </div>
+
+        <TablePagination
+          currentPage={safePage}
+          totalPages={totalPages}
+          totalItems={filteredSwaps.length}
+          itemsPerPage={ITEMS_PER_PAGE}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* MODAL */}
@@ -241,7 +278,13 @@ export default function AdminSwaps() {
 
                     <div className="w-full aspect-[4/3] rounded-xl overflow-hidden bg-neutral-100 flex justify-center items-center">
                        {selectedSwap.offeredItem?.images?.length > 0 ? (
-                         <img src={selectedSwap.offeredItem.images[0].url} alt="offered" className="w-full h-full object-cover" />
+                         <img
+                           src={selectedSwap.offeredItem.images[0].url}
+                           alt="offered"
+                           loading="lazy"
+                           decoding="async"
+                           className="w-full h-full object-cover"
+                         />
                        ) : (
                          <ImageIcon className="w-8 h-8 text-neutral-300" />
                        )}
@@ -274,7 +317,13 @@ export default function AdminSwaps() {
 
                     <div className="w-full aspect-[4/3] rounded-xl overflow-hidden bg-neutral-100 flex justify-center items-center">
                        {selectedSwap.requestedItem?.images?.length > 0 ? (
-                         <img src={selectedSwap.requestedItem.images[0].url} alt="requested" className="w-full h-full object-cover" />
+                         <img
+                           src={selectedSwap.requestedItem.images[0].url}
+                           alt="requested"
+                           loading="lazy"
+                           decoding="async"
+                           className="w-full h-full object-cover"
+                         />
                        ) : (
                          <ImageIcon className="w-8 h-8 text-neutral-300" />
                        )}

@@ -120,17 +120,51 @@ export function MyItemsSection() {
     }
   };
 
+  let content: React.ReactNode;
+
+  if (loading) {
+    content = <div className="py-10 text-center text-neutral-500">Loading your items...</div>;
+  } else if (items.length === 0) {
+    content = <div className="py-10 text-center text-neutral-500">No items yet.</div>;
+  } else {
+    content = (
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {/* --------------------------------------------------
+            ITEM CARDS
+            - Each ApparelCard shows item details
+            - showEdit/showDelete enable action buttons on card
+            - onEdit: navigate to edit page
+            - onDelete: open delete confirmation modal
+            - onOpenDetails: navigate to item detail page
+          -------------------------------------------------- */}
+        {items.map((item) => (
+          <div key={item.id} className="mx-auto w-full max-w-[280px]">
+            <ApparelCard
+              item={item}
+              showOwner={false}
+              showEdit
+              showDelete
+              onEdit={() => navigate(`/items/${item.id}/edit`)}
+              onDelete={() => openDelete(item.id)}
+              onOpenDetails={() => navigate(`/items/${item.id}`)}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="rounded-xl border border-brand-100 bg-white shadow-lg p-5">
+    <div className="rounded-[28px] border border-white/75 bg-gradient-to-b from-white/90 to-neutral-50/80 p-5 shadow-[0_18px_50px_-34px_rgba(15,23,42,0.22)] backdrop-blur-sm">
       {/* --------------------------------------------------
           HEADER
           - Title + subtitle
           - Refresh button to manually reload the item list
         -------------------------------------------------- */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-lg font-extrabold text-gray-900">My Items</h2>
-          <p className="mt-1 text-xs text-gray-600">
+          <h2 className="text-lg font-extrabold text-neutral-900">My Items</h2>
+          <p className="mt-1 text-sm text-neutral-600">
             Manage your posted items
           </p>
         </div>
@@ -138,6 +172,7 @@ export function MyItemsSection() {
         <Button
           variant="outline"
           size="sm"
+          className="sm:self-start"
           onClick={loadMyItems}
           isLoading={loading}
         >
@@ -150,7 +185,7 @@ export function MyItemsSection() {
           - Displays any load/delete API errors
         -------------------------------------------------- */}
       {error && (
-        <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 shadow-[0_10px_30px_-24px_rgba(190,18,60,0.35)]">
           {error}
         </div>
       )}
@@ -161,46 +196,7 @@ export function MyItemsSection() {
           - Empty state
           - Items grid (when items exist)
         -------------------------------------------------- */}
-      {loading ? (
-        <div className="py-8 text-center text-gray-500">
-          Loading your items...
-        </div>
-      ) : items.length === 0 ? (
-        <div className="py-8 text-center text-gray-500">
-          No items yet.
-        </div>
-      ) : (
-        <div
-          className="mt-6 grid 
-                        grid-cols-2 
-                        sm:grid-cols-3 
-                        lg:grid-cols-4 
-                        xl:grid-cols-5 
-                        gap-4"
-        >
-          {/* --------------------------------------------------
-              ITEM CARDS
-              - Each ApparelCard shows item details
-              - showEdit/showDelete enable action buttons on card
-              - onEdit: navigate to edit page
-              - onDelete: open delete confirmation modal
-              - onOpenDetails: navigate to item detail page
-            -------------------------------------------------- */}
-          {items.map((item) => (
-            <div key={item.id} className="max-w-[240px] mx-auto w-full">
-              <ApparelCard
-                item={item}
-                showOwner={false}
-                showEdit
-                showDelete
-                onEdit={() => navigate(`/items/${item.id}/edit`)}
-                onDelete={() => openDelete(item.id)}
-                onOpenDetails={() => navigate(`/items/${item.id}`)}
-              />
-            </div>
-          ))}
-        </div>
-      )}
+      {content}
 
       {/* --------------------------------------------------
           DELETE MODAL
@@ -210,14 +206,19 @@ export function MyItemsSection() {
         -------------------------------------------------- */}
       {deleteOpen && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-black/30" onClick={closeDelete} />
+          <button
+            type="button"
+            aria-label="Close delete item dialog"
+            className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]"
+            onClick={closeDelete}
+          />
 
-          <div className="relative w-full max-w-md rounded-2xl border border-brand-100 bg-white shadow-2xl p-6">
-            <h3 className="text-base font-extrabold text-gray-900">
+          <div className="relative w-full max-w-md rounded-[28px] border border-white/80 bg-white/95 p-6 shadow-[0_30px_100px_-44px_rgba(15,23,42,0.55)] backdrop-blur-xl">
+            <h3 className="text-base font-extrabold text-neutral-900">
               Delete this item?
             </h3>
 
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-neutral-600">
               This will permanently remove the item.
               <br />
               <span className="text-red-700 font-semibold">

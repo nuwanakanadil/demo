@@ -3,6 +3,7 @@ import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { registerUser } from "../../api/auth.api";
 import { CheckCircle } from "lucide-react";
+import { AuthLayout } from "../../layout/AuthLayout";
 
 interface RegisterPageProps {
   onRegister: (role: "user" | "admin", userId: string) => void; // (kept, but not used anymore)
@@ -45,15 +46,17 @@ export function RegisterPage({ onNavigateLogin }: RegisterPageProps) {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-brand-50 px-4">
-        <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border border-brand-100 text-center space-y-6">
-          <div className="mx-auto h-14 w-14 rounded-full bg-brand-100 flex items-center justify-center">
+      <AuthLayout
+        title="Check your inbox"
+        subtitle="Verify your email to activate your account"
+      >
+        <div className="text-center space-y-5">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-100/90">
             <CheckCircle className="h-9 w-9 text-brand-600" />
           </div>
 
           <div>
-            <h2 className="text-2xl font-extrabold text-gray-900">Verify your email to continue ✅</h2>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="text-sm text-gray-600">
               We sent a verification link to <span className="font-semibold">{email}</span>.
               <br />
               Please verify your email before logging in.
@@ -75,20 +78,13 @@ export function RegisterPage({ onNavigateLogin }: RegisterPageProps) {
             Use a different email
           </Button>
         </div>
-      </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-brand-50 px-4">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg border border-brand-100">
-        <div className="text-center">
-          <img src="/logo.png" alt="ReWear" className="mx-auto h-16 w-auto" />
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Create an account</h2>
-          <p className="mt-2 text-sm text-gray-600">Join ReWear and start swapping</p>
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+    <AuthLayout title="Create account" subtitle="Create your profile and start swapping in minutes">
+      <form className="space-y-5" onSubmit={handleSubmit}>
           {error && (
             <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">
               {error}
@@ -106,18 +102,21 @@ export function RegisterPage({ onNavigateLogin }: RegisterPageProps) {
             Register
           </Button>
 
+          <div className="relative pt-1">
+            <div className="h-px bg-neutral-200" />
+          </div>
+
           <div className="text-center text-sm">
             <span className="text-gray-500">Already have an account? </span>
             <button
               type="button"
               onClick={onNavigateLogin}
-              className="font-medium text-brand-600 hover:text-brand-500"
+              className="font-semibold text-brand-700 hover:text-brand-600"
             >
               Sign in
             </button>
           </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </AuthLayout>
   );
 }

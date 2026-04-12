@@ -47,8 +47,8 @@ export function LoginPage({
   };
 
   return (
-    <AuthLayout title="Welcome back" subtitle="Sign in to continue swapping">
-      <form className="space-y-6" onSubmit={handleSubmit}>
+    <AuthLayout title="Welcome back" subtitle="Sign in to continue your style journey">
+      <form className="space-y-5" onSubmit={handleSubmit}>
         {error && (
           <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">
             {error}
@@ -77,12 +77,11 @@ export function LoginPage({
           />
         </div>
 
-        {/* ✅ Forgot password link (reduced spacing) */}
-        <div className="text-right text-sm -mt-2">
+        <div className="text-right text-sm -mt-1">
           <button
             type="button"
             onClick={onForgotPassword}
-            className="font-medium text-brand-600 hover:text-brand-500"
+            className="font-medium text-brand-700 hover:text-brand-600"
           >
             Forgot Password
           </button>
@@ -97,12 +96,16 @@ export function LoginPage({
           Sign in
         </Button>
 
+        <div className="relative pt-1">
+          <div className="h-px bg-neutral-200" />
+        </div>
+
         <div className="text-center text-sm">
           <span className="text-gray-500">Don't have an account? </span>
           <button
             type="button"
             onClick={onNavigateRegister}
-            className="font-medium text-brand-600 hover:text-brand-500"
+            className="font-semibold text-brand-700 hover:text-brand-600"
           >
             Register now
           </button>

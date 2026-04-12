@@ -7,11 +7,36 @@ export interface AdminDashboardResponse {
     totalItems: number;
     totalSwaps: number;
     totalReviews: number;
+    rangeDays: number;
+    trends: {
+      users: { current: number; previous: number; delta: number; deltaPct: number };
+      items: { current: number; previous: number; delta: number; deltaPct: number };
+      swaps: { current: number; previous: number; delta: number; deltaPct: number };
+      reviews: { current: number; previous: number; delta: number; deltaPct: number };
+    };
+    moderationQueue: {
+      blockedItems: number;
+      suspendedUsers: number;
+    };
+    swapFunnel: {
+      requested: number;
+      accepted: number;
+      inLogistics: number;
+      completed: number;
+    };
+    recentActivity: Array<{
+      id: string;
+      type: "swap" | "moderation";
+      title: string;
+      description: string;
+      createdAt: string;
+      link: string;
+    }>;
   };
 }
 
-export async function getAdminDashboard() {
-  const res = await api.get("/admin/dashboard");
+export async function getAdminDashboard(rangeDays = 30) {
+  const res = await api.get("/admin/dashboard", { params: { rangeDays } });
   return res.data as AdminDashboardResponse;
 }
 

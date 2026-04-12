@@ -1,5 +1,7 @@
 const { Conversation, Message } = require("./chat.models");
 const mongoose = require("mongoose");
+const User = require("../auth/auth.model");
+const Apparel = require("../apparel/apparel.model");
 
 /* ==================================================
    GET OR CREATE CONVERSATION
@@ -124,19 +126,53 @@ exports.listMyConversations = async (req, res, next) => {
           (p) => String(p._id) !== String(myId)
         );
 
-        // Extract item preview info
-        const itemTitle = c.itemId?.title || "Item";
-        const itemImage =
+        let otherUser = null;
+        if (other?.name) {
+          otherUser = { id: other._id, name: other.name };
+        } else {
+          const otherId = (c.participants || []).find(
+            (p) => String(p) !== String(myId) && String(p?._id || p) !== String(myId)
+          );
+          const resolvedId = other?._id || otherId?._id || otherId;
+          if (resolvedId) {
+            const resolvedUser = await User.findById(resolvedId).select("name").lean();
+            if (resolvedUser) {
+              otherUser = { id: resolvedUser._id, name: resolvedUser.name };
+            }
+          }
+        }
+
+        let itemTitle = c.itemId?.title || "Item";
+        let itemImage =
           Array.isArray(c.itemId?.images) && c.itemId.images.length > 0
             ? c.itemId.images[0].url
             : null;
+
+        if (itemTitle === "Item" || itemImage === null) {
+          const resolvedItemId = c.itemId?._id || c.itemId?.id || c.itemId;
+          if (resolvedItemId) {
+            const resolvedItem = await Apparel.findById(resolvedItemId)
+              .select("title images")
+              .lean();
+            if (resolvedItem?.title) {
+              itemTitle = resolvedItem.title;
+            }
+            if (
+              resolvedItem?.images
+              && Array.isArray(resolvedItem.images)
+              && resolvedItem.images.length > 0
+            ) {
+              itemImage = resolvedItem.images[0].url;
+            }
+          }
+        }
 
         return {
           id: c._id,
           itemId: c.itemId?._id,
           itemTitle,
           itemImage,
-          otherUser: other ? { id: other._id, name: other.name } : null,
+          otherUser,
           lastMessage: c.lastMessageText || "",
           updatedAt: c.lastMessageAt || c.updatedAt,
           unreadCount,

@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Item, Filters, SavedSearch } from "../types/marketplace";
 import { WishlistPage } from "./WishlistPage";
 import { SaveSearchModal } from "../components/wishlist/SaveSearchModal";
+import { Button } from "../components/ui/Button";
+import { StateDisplay } from "../components/ui/StateDisplay";
 import { getMe } from "../api/auth.api";
 import {
   addToWishlist,
@@ -135,51 +137,44 @@ export function WishlistHubPage() {
     return map;
   }, [wishlistItems]);
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadWishlistData = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
 
-    const loadWishlist = async () => {
-      setIsLoading(true);
-      setLoadError(null);
+    try {
+      const [meRes, wishlistRes, searchesRes] = await Promise.all([
+        getMe(),
+        getWishlistItems(),
+        getSavedSearches(),
+      ]);
 
-      try {
-        const [meRes, wishlistRes, searchesRes] = await Promise.all([
-          getMe(),
-          getWishlistItems(),
-          getSavedSearches(),
-        ]);
+      const currentUserId = meRes?.user?.id || "";
 
-        const currentUserId = meRes?.user?.id || "";
+      const mappedWishlist = (wishlistRes || [])
+        .filter((item) => Boolean(item))
+        .map((item) => mapItemFromApi(item, currentUserId))
+        .filter((item: Item | null): item is Item => Boolean(item));
 
-        const mappedWishlist = (wishlistRes || [])
-          .filter((item) => Boolean(item))
-          .map((item) => mapItemFromApi(item, currentUserId))
-          .filter((item: Item | null): item is Item => Boolean(item));
+      const mappedSearches: SavedSearch[] = (searchesRes || []).map((s) => ({
+        id: s._id,
+        name: s.name,
+        filters: normalizeFilters(s.filters),
+      }));
 
-        const mappedSearches: SavedSearch[] = (searchesRes || []).map((s) => ({
-          id: s._id,
-          name: s.name,
-          filters: normalizeFilters(s.filters),
-        }));
-
-        if (!isMounted) return;
-        setWishlistItems(mappedWishlist);
-        setWishlistIds(mappedWishlist.map((i) => i.id));
-        dispatchWishlistCountChanged(mappedWishlist.length);
-        setSavedSearches(mappedSearches);
-      } catch (err: any) {
-        if (!isMounted) return;
-        setLoadError(err?.response?.data?.message || "Failed to load wishlist data");
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    loadWishlist();
-    return () => {
-      isMounted = false;
-    };
+      setWishlistItems(mappedWishlist);
+      setWishlistIds(mappedWishlist.map((i) => i.id));
+      dispatchWishlistCountChanged(mappedWishlist.length);
+      setSavedSearches(mappedSearches);
+    } catch (err: any) {
+      setLoadError(err?.response?.data?.message || "Failed to load wishlist data");
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadWishlistData();
+  }, [loadWishlistData]);
 
   const handleToggleSave = async (id: string) => {
     if (actionLoading) return;
@@ -256,14 +251,24 @@ export function WishlistHubPage() {
     <div className="min-h-screen w-full bg-gray-50">
       <main className="max-w-7xl mx-auto px-4 py-8">
         {isLoading && (
-          <div className="rounded-lg border border-gray-200 bg-white p-6 text-gray-600">
-            Loading wishlist...
+          <div className="rounded-lg border border-neutral-200 bg-white/80">
+            <StateDisplay type="loading" title="Loading wishlist..." className="py-8" />
           </div>
         )}
 
         {!isLoading && loadError && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-            {loadError}
+          <div className="mb-6 rounded-lg border border-rose-200 bg-rose-50/70">
+            <StateDisplay
+              type="error"
+              title="Could not load wishlist"
+              description={loadError}
+              className="py-6"
+              action={
+                <Button variant="outline" size="sm" onClick={() => void loadWishlistData()}>
+                  Retry
+                </Button>
+              }
+            />
           </div>
         )}
 

@@ -5,6 +5,22 @@ import deleteFromCloudinary from "../../utils/cloudinaryDelete.js";
 import Swap from "../swap/swap.model.js";
 import bcrypt from "bcryptjs";
 import Notification from "../notification/notification.model.js";
+import AdminAudit from "./adminAudit.model.js";
+
+const logAdminAction = async ({ actorId, action, targetType, targetId, targetLabel, meta = {} }) => {
+  try {
+    await AdminAudit.create({
+      actorId,
+      action,
+      targetType,
+      targetId: targetId ? String(targetId) : "",
+      targetLabel: targetLabel || "",
+      meta,
+    });
+  } catch (err) {
+    console.error("Admin audit log failed:", err.message);
+  }
+};
 // ---------------- USERS ----------------
 export const getAllUsers = async (req, res, next) => {
   try {
@@ -31,10 +47,15 @@ export const getAllUsers = async (req, res, next) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const filter = { role: "user" };
 
-    const totalUsers = await User.countDocuments({ role: "user" });
+    if (req.query.status) {
+      filter.accountStatus = req.query.status;
+    }
 
-    const userList = await User.find({ role: "user" })
+    const totalUsers = await User.countDocuments(filter);
+
+    const userList = await User.find(filter)
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
@@ -80,6 +101,15 @@ export const createUserByAdmin = async (req, res, next) => {
     });
 
     await newUser.save();
+
+    await logAdminAction({
+      actorId: req.user.id,
+      action: "CREATE_USER",
+      targetType: "user",
+      targetId: newUser._id,
+      targetLabel: newUser.email,
+      meta: { role: newUser.role },
+    });
 
     res.status(201).json({
       success: true,
@@ -138,6 +168,15 @@ export const suspendUser = async (req, res, next) => {
       { $set: { isBlocked: true } }
     );
 
+    await logAdminAction({
+      actorId: req.user.id,
+      action: statusUpdate.accountStatus === "banned" ? "BAN_USER" : "SUSPEND_USER",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: user.email,
+      meta: { duration, suspensionEnd: statusUpdate.suspensionEnd },
+    });
+
     res.status(200).json({
       success: true,
       message:
@@ -172,6 +211,14 @@ export const activeUser = async (req, res, next) => {
       { $set: { isBlocked: false } }
     );
 
+    await logAdminAction({
+      actorId: req.user.id,
+      action: "ACTIVATE_USER",
+      targetType: "user",
+      targetId: user._id,
+      targetLabel: user.email,
+    });
+
     res.status(200).json({
       success: true,
       message: "User activated and all items unblocked",
@@ -204,6 +251,10 @@ export async function getAllItems(req, res, next) {
 
     if (req.query.condition) {
       filter.condition = req.query.condition;
+    }
+
+    if (typeof req.query.blocked !== "undefined") {
+      filter.isBlocked = String(req.query.blocked).toLowerCase() === "true";
     }
 
     if(req.query.email){
@@ -283,6 +334,14 @@ export async function updateItemStatus(req, res, next) {
       }
     }
 
+    await logAdminAction({
+      actorId: req.user.id,
+      action: block ? "BLOCK_ITEM" : "UNBLOCK_ITEM",
+      targetType: "item",
+      targetId: item._id,
+      targetLabel: item.title,
+    });
+
     res.status(200).json({
       success: true,
       message: `Item ${block ? "blocked" : "unblocked"}`,
@@ -326,6 +385,14 @@ export const deleteItem = async (req, res, next) => {
 
     await item.deleteOne();
 
+    await logAdminAction({
+      actorId: req.user.id,
+      action: "DELETE_ITEM",
+      targetType: "item",
+      targetId: item._id,
+      targetLabel: item.title,
+    });
+
     res.status(200).json({
       success: true,
       message: "Item removed successfully"
@@ -348,6 +415,14 @@ export async function getAllSwaps(req, res, next) {
 
     if (req.query.status) {
       filter.status = req.query.status;
+    }
+
+    if (req.query.stage === "in-logistics") {
+      filter.$or = [
+        { "logistics.status": { $in: ["SCHEDULED", "IN_TRANSIT", "DONE"] } },
+        { status: "COMPLETED" },
+      ];
+      delete filter.status;
     }
 
     // Filter by requester email
@@ -489,6 +564,14 @@ export async function deleteReview(req, res, next) {
       });
     }
 
+    await logAdminAction({
+      actorId: req.user.id,
+      action: "DELETE_REVIEW",
+      targetType: "review",
+      targetId: review._id,
+      targetLabel: review.comment?.slice(0, 40) || "review",
+    });
+
     return res.status(200).json({
       success: true,
       message: "Review deleted successfully"
@@ -499,13 +582,223 @@ export async function deleteReview(req, res, next) {
   }
 }
 
+export const bulkUserStatus = async (req, res, next) => {
+  try {
+    const { emails = [], action = "suspend", duration = 7 } = req.body || {};
+    const normalizedEmails = Array.isArray(emails)
+      ? emails.map((x) => String(x).trim().toLowerCase()).filter(Boolean)
+      : [];
+
+    if (normalizedEmails.length === 0) {
+      return res.status(400).json({ success: false, message: "No user emails provided" });
+    }
+
+    const update = action === "activate"
+      ? { accountStatus: "active", suspensionEnd: null }
+      : {
+          accountStatus: duration === "permanent" ? "banned" : "suspended",
+          suspensionEnd: duration === "permanent" ? null : new Date(Date.now() + Number(duration) * 24 * 60 * 60 * 1000),
+        };
+
+    const result = await User.updateMany({ email: { $in: normalizedEmails }, role: "user" }, { $set: update });
+    const users = await User.find({ email: { $in: normalizedEmails }, role: "user" }).select("_id email");
+
+    if (action === "activate") {
+      await Apparel.updateMany({ owner: { $in: users.map((u) => u._id) } }, { $set: { isBlocked: false } });
+    } else {
+      await Apparel.updateMany({ owner: { $in: users.map((u) => u._id) } }, { $set: { isBlocked: true } });
+    }
+
+    await logAdminAction({
+      actorId: req.user.id,
+      action: action === "activate" ? "BULK_ACTIVATE_USERS" : "BULK_SUSPEND_USERS",
+      targetType: "user",
+      targetLabel: `${users.length} users`,
+      meta: { emails: normalizedEmails, duration },
+    });
+
+    res.status(200).json({ success: true, modifiedCount: result.modifiedCount || 0 });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const bulkItemBlock = async (req, res, next) => {
+  try {
+    const { itemIds = [], block = true } = req.body || {};
+    const ids = Array.isArray(itemIds) ? itemIds.filter(Boolean) : [];
+
+    if (ids.length === 0) {
+      return res.status(400).json({ success: false, message: "No item IDs provided" });
+    }
+
+    const result = await Apparel.updateMany({ _id: { $in: ids } }, { $set: { isBlocked: !!block } });
+
+    await logAdminAction({
+      actorId: req.user.id,
+      action: block ? "BULK_BLOCK_ITEMS" : "BULK_UNBLOCK_ITEMS",
+      targetType: "item",
+      targetLabel: `${ids.length} items`,
+      meta: { itemIds: ids },
+    });
+
+    res.status(200).json({ success: true, modifiedCount: result.modifiedCount || 0 });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAuditLogs = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+    const q = (req.query.q || "").toString().trim();
+    const action = (req.query.action || "").toString().trim();
+
+    const filter = {};
+    if (q) {
+      filter.$or = [
+        { targetLabel: { $regex: q, $options: "i" } },
+        { action: { $regex: q, $options: "i" } },
+      ];
+    }
+    if (action) {
+      filter.action = action;
+    }
+
+    const total = await AdminAudit.countDocuments(filter);
+    const logs = await AdminAudit.find(filter)
+      .populate("actorId", "name email")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      page,
+      totalPages: Math.ceil(total / limit),
+      total,
+      count: logs.length,
+      data: logs,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 //from admin dashboard
 export const getAdminDashboard = async (req, res, next) => {
   try {
-    const totalUsers = await User.countDocuments({ role: "user" });
-    const totalItems = await Apparel.countDocuments();
-    const totalSwaps = await Swap.countDocuments();
-    const totalReviews = await OwnerReview.countDocuments();
+    const now = new Date();
+    const requestedRange = Number(req.query.rangeDays) || 30;
+    const allowedRanges = [7, 30, 90];
+    const rangeDays = allowedRanges.includes(requestedRange) ? requestedRange : 30;
+
+    const start = new Date(now);
+    start.setDate(start.getDate() - rangeDays);
+
+    const previousStart = new Date(start);
+    previousStart.setDate(previousStart.getDate() - rangeDays);
+
+    const currentRangeFilter = { $gte: start, $lte: now };
+    const previousRangeFilter = { $gte: previousStart, $lt: start };
+
+    const [
+      totalUsers,
+      totalItems,
+      totalSwaps,
+      totalReviews,
+      usersCurrent,
+      usersPrevious,
+      itemsCurrent,
+      itemsPrevious,
+      swapsCurrent,
+      swapsPrevious,
+      reviewsCurrent,
+      reviewsPrevious,
+      blockedItems,
+      suspendedUsers,
+      unreadModerationAlerts,
+      funnelRequested,
+      funnelAccepted,
+      funnelInLogistics,
+      funnelCompleted,
+      recentSwaps,
+      recentModerationNotifications,
+    ] = await Promise.all([
+      User.countDocuments({ role: "user" }),
+      Apparel.countDocuments(),
+      Swap.countDocuments(),
+      OwnerReview.countDocuments(),
+
+      User.countDocuments({ role: "user", createdAt: currentRangeFilter }),
+      User.countDocuments({ role: "user", createdAt: previousRangeFilter }),
+      Apparel.countDocuments({ createdAt: currentRangeFilter }),
+      Apparel.countDocuments({ createdAt: previousRangeFilter }),
+      Swap.countDocuments({ createdAt: currentRangeFilter }),
+      Swap.countDocuments({ createdAt: previousRangeFilter }),
+      OwnerReview.countDocuments({ createdAt: currentRangeFilter }),
+      OwnerReview.countDocuments({ createdAt: previousRangeFilter }),
+
+      Apparel.countDocuments({ isBlocked: true }),
+      User.countDocuments({ role: "user", accountStatus: { $in: ["suspended", "banned"] } }),
+      Notification.countDocuments({
+        isRead: false,
+        type: { $in: ["ITEM_BLOCKED", "ITEM_REMOVED"] },
+      }),
+
+      Swap.countDocuments({ status: "PENDING" }),
+      Swap.countDocuments({ status: "ACCEPTED" }),
+      Swap.countDocuments({
+        $or: [
+          { "logistics.status": { $in: ["SCHEDULED", "IN_TRANSIT", "DONE"] } },
+          { status: "COMPLETED" },
+        ],
+      }),
+      Swap.countDocuments({ status: "COMPLETED" }),
+
+      Swap.find({})
+        .populate("requester", "name")
+        .populate("owner", "name")
+        .sort({ updatedAt: -1 })
+        .limit(5)
+        .lean(),
+
+      Notification.find({ type: { $in: ["ITEM_BLOCKED", "ITEM_REMOVED"] } })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
+    ]);
+
+    const buildTrend = (current, previous) => {
+      const delta = current - previous;
+      const deltaPct = previous === 0 ? (current > 0 ? 100 : 0) : Number(((delta / previous) * 100).toFixed(1));
+      return { current, previous, delta, deltaPct };
+    };
+
+    const swapActivity = recentSwaps.map((s) => ({
+      id: String(s._id),
+      type: "swap",
+      title: `Swap ${String(s.status || "PENDING").toLowerCase()}`,
+      description: `${s.requester?.name || "User"} <> ${s.owner?.name || "User"}`,
+      createdAt: s.updatedAt || s.createdAt,
+      link: "/admin/swaps",
+    }));
+
+    const moderationActivity = recentModerationNotifications.map((n) => ({
+      id: String(n._id),
+      type: "moderation",
+      title: n.title || "Moderation event",
+      description: n.message || "",
+      createdAt: n.createdAt,
+      link: "/admin/items?blocked=true",
+    }));
+
+    const recentActivity = [...swapActivity, ...moderationActivity]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 8);
 
     res.status(200).json({
       success: true,
@@ -514,6 +807,25 @@ export const getAdminDashboard = async (req, res, next) => {
         totalItems,
         totalSwaps,
         totalReviews,
+        rangeDays,
+        trends: {
+          users: buildTrend(usersCurrent, usersPrevious),
+          items: buildTrend(itemsCurrent, itemsPrevious),
+          swaps: buildTrend(swapsCurrent, swapsPrevious),
+          reviews: buildTrend(reviewsCurrent, reviewsPrevious),
+        },
+        moderationQueue: {
+          blockedItems,
+          suspendedUsers,
+          unreadModerationAlerts,
+        },
+        swapFunnel: {
+          requested: funnelRequested,
+          accepted: funnelAccepted,
+          inLogistics: funnelInLogistics,
+          completed: funnelCompleted,
+        },
+        recentActivity,
       },
     });
   } catch (error) {

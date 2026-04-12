@@ -42,9 +42,18 @@ export interface SwapRequest {
   offeredItemName: string;
   offeredItemImageUrl?: string; // ✅ NEW
 
-  status: "pending" | "accepted" | "rejected" | "completed" | "cancelled"; // ✅ UPDATED
+  status: "pending" | "accepted" | "rejected" | "completed" | "cancelled" | "expired"; // ✅ UPDATED
   message?: string;
   createdAt: string;
+  compatibilityScore?: number;
+  requesterTrust?: {
+    totalSwaps: number;
+    completionRate: number;
+    rejectRate: number;
+    cancelRate: number;
+    avgRating: number;
+    reviewsCount: number;
+  };
 }
 
 /* ================================

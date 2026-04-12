@@ -4,6 +4,8 @@ import { SwapRequestCard } from "../../components/SwapRequestCard";
 import { Send } from "lucide-react";
 import { getOutgoingSwaps } from "../../api/swap.api";
 import { useNavigate } from "react-router-dom";
+import { Button } from "../../components/ui/Button";
+import { StateDisplay } from "../../components/ui/StateDisplay";
 
 export function MyRequestsPage() {
   const navigate = useNavigate();
@@ -41,29 +43,36 @@ export function MyRequestsPage() {
           </div>
         </div>
 
-        <button
-          className="text-sm font-semibold text-brand-600 hover:text-brand-500"
-          onClick={load}
-        >
+        <Button variant="ghost" size="sm" onClick={load}>
           Refresh
-        </button>
+        </Button>
       </div>
 
       {error && (
-        <div className="mb-5 rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">
-          {error}{" "}
-          <button className="underline font-medium ml-2" onClick={load}>
-            Retry
-          </button>
+        <div className="mb-5 rounded-xl border border-rose-200 bg-rose-50/70">
+          <StateDisplay
+            type="error"
+            title="Could not load your requests"
+            description={error}
+            className="py-6"
+            action={
+              <Button variant="outline" size="sm" onClick={load}>
+                Retry
+              </Button>
+            }
+          />
         </div>
       )}
 
       {loading ? (
-        <div className="py-16 text-center text-gray-500">Loading your swap requests…</div>
+        <StateDisplay type="loading" title="Loading your swap requests..." />
       ) : requests.length === 0 ? (
-        <div className="text-center py-14 bg-neutral-50 rounded-xl border border-neutral-200">
-          <p className="text-gray-600 font-medium">You haven’t sent any swap requests yet.</p>
-          <p className="text-sm text-gray-500 mt-1">Go to Browse Items and request a swap.</p>
+        <div className="rounded-xl border border-neutral-200 bg-neutral-50/75">
+          <StateDisplay
+            type="empty"
+            title="You haven't sent any swap requests yet"
+            description="Go to Browse Items and request a swap."
+          />
         </div>
       ) : (
         <div className="space-y-4">

@@ -1,7 +1,82 @@
-/* URL IMPORTS (SUCH AS FONT IMPORTS) SHOULD BE KEPT ABOVE TAILWIND IMPORTS - DO NOT DELETE THIS COMMENT */
-
 /* PLEASE NOTE: THESE TAILWIND IMPORTS SHOULD NEVER BE DELETED - DO NOT DELETE THIS COMMENT */
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 /* DO NOT DELETE THESE TAILWIND IMPORTS, OTHERWISE THE STYLING WILL NOT RENDER AT ALL - DO NOT DELETE THIS COMMENT */
+
+:root {
+	--surface-1: #f5f6f8;
+	--surface-2: #eceef3;
+	--ink-1: #111827;
+	--mac-accent: #429172;
+}
+
+@layer base {
+	html,
+	body,
+	#root {
+		min-height: 100%;
+	}
+
+	body {
+		font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+		color: var(--ink-1);
+		background:
+			radial-gradient(circle at 12% -12%, rgba(66, 145, 114, 0.14), transparent 42%),
+			radial-gradient(circle at 96% 108%, rgba(147, 51, 234, 0.08), transparent 38%),
+			linear-gradient(165deg, var(--surface-1), var(--surface-2));
+		text-rendering: optimizeLegibility;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
+
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		letter-spacing: -0.02em;
+	}
+
+	::selection {
+		background: rgba(66, 145, 114, 0.24);
+	}
+
+	::-webkit-scrollbar {
+		width: 10px;
+		height: 10px;
+	}
+
+	::-webkit-scrollbar-thumb {
+		background: linear-gradient(180deg, #b5c5db, #93a8c4);
+		border-radius: 999px;
+	}
+
+	::-webkit-scrollbar-track {
+		background: rgba(255, 255, 255, 0.65);
+	}
+}
+
+@keyframes landingFadeUp {
+	from {
+		opacity: 0;
+		transform: translateY(14px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.landing-fade-up {
+	opacity: 0;
+	animation: landingFadeUp 560ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.landing-fade-up {
+		opacity: 1;
+		animation: none;
+	}
+}
