@@ -415,8 +415,8 @@ Example Request:
 
 Detailed testing and deployment artifacts are included separately in the repository:
 
-- `Testing_Report.md`
-- `Deployment_Report.md`
+- `Testing_Report.pdf`
+- `Deployment_Report.pdf`
 
 ---
 
