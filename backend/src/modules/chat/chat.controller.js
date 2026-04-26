@@ -123,17 +123,17 @@ exports.listMyConversations = async (req, res, next) => {
 
         // Determine "other user" for display
         const other = (c.participants || []).find(
-          (p) => String(p._id) !== String(myId)
+          (p) => String(p?._id || p) !== String(myId)
         );
 
         let otherUser = null;
         if (other?.name) {
-          otherUser = { id: other._id, name: other.name };
+          otherUser = {
+            id: other._id || other.id,
+            name: other.name,
+          };
         } else {
-          const otherId = (c.participants || []).find(
-            (p) => String(p) !== String(myId) && String(p?._id || p) !== String(myId)
-          );
-          const resolvedId = other?._id || otherId?._id || otherId;
+          const resolvedId = other?._id || other?.id || other;
           if (resolvedId) {
             const resolvedUser = await User.findById(resolvedId).select("name").lean();
             if (resolvedUser) {
@@ -169,7 +169,7 @@ exports.listMyConversations = async (req, res, next) => {
 
         return {
           id: c._id,
-          itemId: c.itemId?._id,
+          itemId: c.itemId?._id || c.itemId?.id || c.itemId,
           itemTitle,
           itemImage,
           otherUser,

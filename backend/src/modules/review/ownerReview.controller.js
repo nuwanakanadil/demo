@@ -112,7 +112,13 @@ exports.addForOwner = async (req, res, next) => {
     // If not → create new
     let review = await OwnerReview.findOneAndUpdate(
       { revieweeId: userId, reviewerId, itemId },
-      { rating, comment },
+      {
+        revieweeId: userId,
+        reviewerId,
+        itemId,
+        rating,
+        comment,
+      },
       { new: true, upsert: true }
     );
 
@@ -122,8 +128,8 @@ exports.addForOwner = async (req, res, next) => {
       review = await review.populate("itemId", "title");
     }
 
-    const reviewerRef = review.reviewerId?._id || review.reviewerId?.id || review.reviewerId;
-    const itemRef = review.itemId?._id || review.itemId?.id || review.itemId;
+    const reviewerRef = review.reviewerId?._id || review.reviewerId?.id || review.reviewerId || reviewerId;
+    const itemRef = review.itemId?._id || review.itemId?.id || review.itemId || itemId;
 
     const reviewerName = review.reviewerId?.name
       || (await User.findById(reviewerRef).select("name").lean())?.name

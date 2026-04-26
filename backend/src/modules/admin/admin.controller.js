@@ -1,11 +1,11 @@
-import Apparel from "../apparel/apparel.model.js";
-import User from "../auth/auth.model.js";
-import OwnerReview from "../review/ownerReview.model.js";
-import deleteFromCloudinary from "../../utils/cloudinaryDelete.js";
-import Swap from "../swap/swap.model.js";
-import bcrypt from "bcryptjs";
-import Notification from "../notification/notification.model.js";
-import AdminAudit from "./adminAudit.model.js";
+const Apparel = require("../apparel/apparel.model");
+const User = require("../auth/auth.model");
+const OwnerReview = require("../review/ownerReview.model");
+const { deleteFromCloudinary } = require("../../utils/cloudinaryDelete");
+const Swap = require("../swap/swap.model");
+const bcrypt = require("bcryptjs");
+const Notification = require("../notification/notification.model");
+const AdminAudit = require("./adminAudit.model");
 
 const logAdminAction = async ({ actorId, action, targetType, targetId, targetLabel, meta = {} }) => {
   try {
@@ -22,7 +22,7 @@ const logAdminAction = async ({ actorId, action, targetType, targetId, targetLab
   }
 };
 // ---------------- USERS ----------------
-export const getAllUsers = async (req, res, next) => {
+const getAllUsers = async (req, res, next) => {
   try {
 
     if (req.query.email) {
@@ -76,7 +76,7 @@ export const getAllUsers = async (req, res, next) => {
 
 //create user
 
-export const createUserByAdmin = async (req, res, next) => {
+const createUserByAdmin = async (req, res, next) => {
   try {
     const { name, email, password, role } = req.body;
 
@@ -126,7 +126,7 @@ export const createUserByAdmin = async (req, res, next) => {
 
 //suspend user
 
-export const suspendUser = async (req, res, next) => {
+const suspendUser = async (req, res, next) => {
   try {
     const { duration } = req.body; // allowed: 7, 30, or "permanent"
 
@@ -191,7 +191,7 @@ export const suspendUser = async (req, res, next) => {
 };
 
 //active user
-export const activeUser = async (req, res, next) => {
+const activeUser = async (req, res, next) => {
   try {
     const user = await User.findOneAndUpdate(
       { email: req.params.email },
@@ -233,7 +233,7 @@ export const activeUser = async (req, res, next) => {
 
 // ---------------- ITEMS ----------------
 // Get all items
-export async function getAllItems(req, res, next) {
+async function getAllItems(req, res, next) {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -297,7 +297,7 @@ export async function getAllItems(req, res, next) {
 
 
 //Block / Unblock item
-export async function updateItemStatus(req, res, next) {
+async function updateItemStatus(req, res, next) {
   try {
     const { block } = req.body;
 
@@ -356,7 +356,7 @@ export async function updateItemStatus(req, res, next) {
 
 
 // Delete item
-export const deleteItem = async (req, res, next) => {
+const deleteItem = async (req, res, next) => {
   try {
     const item = await Apparel.findById(req.params.id);
 
@@ -405,7 +405,7 @@ export const deleteItem = async (req, res, next) => {
 
 // // ---------------- SWAPS ----------------
 // Get all swaps
-export async function getAllSwaps(req, res, next) {
+async function getAllSwaps(req, res, next) {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -485,7 +485,7 @@ export async function getAllSwaps(req, res, next) {
 }
 
 
-export async function getAllReviews(req, res, next) {
+async function getAllReviews(req, res, next) {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -553,7 +553,7 @@ export async function getAllReviews(req, res, next) {
 
 
 //  Delete review
-export async function deleteReview(req, res, next) {
+async function deleteReview(req, res, next) {
   try {
     const review = await OwnerReview.findByIdAndDelete(req.params.id);
 
@@ -582,7 +582,7 @@ export async function deleteReview(req, res, next) {
   }
 }
 
-export const bulkUserStatus = async (req, res, next) => {
+const bulkUserStatus = async (req, res, next) => {
   try {
     const { emails = [], action = "suspend", duration = 7 } = req.body || {};
     const normalizedEmails = Array.isArray(emails)
@@ -623,7 +623,7 @@ export const bulkUserStatus = async (req, res, next) => {
   }
 };
 
-export const bulkItemBlock = async (req, res, next) => {
+const bulkItemBlock = async (req, res, next) => {
   try {
     const { itemIds = [], block = true } = req.body || {};
     const ids = Array.isArray(itemIds) ? itemIds.filter(Boolean) : [];
@@ -648,7 +648,7 @@ export const bulkItemBlock = async (req, res, next) => {
   }
 };
 
-export const getAuditLogs = async (req, res, next) => {
+const getAuditLogs = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -689,7 +689,7 @@ export const getAuditLogs = async (req, res, next) => {
 };
 
 //from admin dashboard
-export const getAdminDashboard = async (req, res, next) => {
+const getAdminDashboard = async (req, res, next) => {
   try {
     const now = new Date();
     const requestedRange = Number(req.query.rangeDays) || 30;
@@ -863,3 +863,20 @@ export const getAdminDashboard = async (req, res, next) => {
 //     next(err);
 //   }
 // }
+
+module.exports = {
+  getAllUsers,
+  createUserByAdmin,
+  suspendUser,
+  activeUser,
+  getAllItems,
+  updateItemStatus,
+  deleteItem,
+  getAllSwaps,
+  getAllReviews,
+  deleteReview,
+  bulkUserStatus,
+  bulkItemBlock,
+  getAuditLogs,
+  getAdminDashboard,
+};
